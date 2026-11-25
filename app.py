@@ -75,7 +75,7 @@ hardcoded_catalog = [
     {"catalog_id": 30, "task_type": "Survey", "task_name": "HP Survey & Verification", "task_description": "Verify Homes Passed counts in new and existing areas and update the Network Loading Sheet."}
 ]
 
-# Supabase REST Bridge with Full Historical Tasks & Fallback
+# Supabase REST Bridge with Full Historical Tasks, File Support & Fallback
 supabase_bridge = f"""
 <script>
 (function() {{
@@ -97,6 +97,98 @@ supabase_bridge = f"""
         {{ email: "annas.north@transworld.com", name: "Annas Bashir", role: "Member", region: "North", designation: "Senior GIS Surveyor" }},
         {{ email: "saboor.north@transworld.com", name: "Saboor Khan", role: "Member", region: "North", designation: "BOQ Estimator Lead" }}
     ];
+
+    var loggedInUser = null;
+    try {{
+        var savedUser = sessionStorage.getItem('tw_logged_user');
+        if (savedUser) loggedInUser = JSON.parse(savedUser);
+    }} catch(e) {{}}
+
+    function getMemberName(email) {{
+        var e = (email || '').toLowerCase();
+        var m = LOCAL_MEMBERS.find(function(x) {{ return x.email.toLowerCase() === e; }});
+        return m ? m.name : email;
+    }}
+
+    function mapTask(t) {{
+        var files = Array.isArray(t.task_files) ? t.task_files : (Array.isArray(t.files) ? t.files : []);
+        var dl = (t.deadline || '').toString();
+        return {{
+            task_id: t.task_id,
+            task_code: t.task_code,
+            title: t.title,
+            task_type: t.task_type,
+            region: t.region || 'North',
+            area_name: t.area_name || '',
+            lat: t.latitude != null ? parseFloat(t.latitude) : (t.lat != null ? parseFloat(t.lat) : null),
+            lng: t.longitude != null ? parseFloat(t.longitude) : (t.lng != null ? parseFloat(t.lng) : null),
+            assigned_to: t.assigned_to,
+            assignee_name: t.assignee_name || getMemberName(t.assigned_to),
+            assigned_by: t.assigned_by || 'fazal.admin@transworld.com',
+            deadline: t.deadline,
+            deadline_str: t.deadline_str || dl.replace('T', ' ').slice(0, 16),
+            priority: t.priority || 'Medium',
+            status: t.status || 'Pending',
+            description: t.description || '',
+            submission_notes: t.submission_notes || '',
+            report_filename: t.report_filename || '',
+            boss_feedback: t.boss_feedback || '',
+            submitted_at: t.submitted_at || null,
+            reviewed_at: t.reviewed_at || null,
+            assignee_seen_at: t.assignee_seen_at || null,
+            file_count: files.length > 0 ? files.length : (t.file_count || 0),
+            files: files
+        }};
+    }}
+
+    function base64ToHex(b64) {{
+        var raw = atob(b64);
+        var hex = '';
+        for (var i = 0; i < raw.length; i++) {{
+            var h = raw.charCodeAt(i).toString(16);
+            hex += (h.length === 2 ? h : '0' + h);
+        }}
+        return '\\\\x' + hex;
+    }}
+
+    function hexToUint8Array(hexStr) {{
+        if (!hexStr) return new Uint8Array(0);
+        if (hexStr.indexOf('\\\\x') === 0 || hexStr.indexOf('0x') === 0) {{
+            hexStr = hexStr.slice(2);
+        }}
+        var bytes = new Uint8Array(hexStr.length / 2);
+        for (var i = 0; i < bytes.length; i++) {{
+            bytes[i] = parseInt(hexStr.substr(i * 2, 2), 16);
+        }}
+        return bytes;
+    }}
+
+    function fetchAllLiveTasks() {{
+        return originalFetch(SB_URL + "/field_tasks?select=*,task_files(file_id,filename,file_type,size_bytes)&order=task_id.desc", {{ headers: SB_HEADERS }})
+        .then(function(res) {{
+            if (!res.ok) {{
+                return originalFetch(SB_URL + "/field_tasks?select=*&order=task_id.desc", {{ headers: SB_HEADERS }})
+                .then(function(res2) {{ return res2.ok ? res2.json() : []; }});
+            }}
+            return res.json();
+        }})
+        .then(function(supabaseTasks) {{
+            var liveList = Array.isArray(supabaseTasks) ? supabaseTasks.map(mapTask) : [];
+            var existingIds = new Set(liveList.map(function(x) {{ return x.task_id; }}));
+            var existingCodes = new Set(liveList.map(function(x) {{ return x.task_code; }}));
+            var merged = liveList.slice();
+            HISTORICAL_TASKS.forEach(function(ht) {{
+                if (!existingIds.has(ht.task_id) && !existingCodes.has(ht.task_code)) {{
+                    merged.push(mapTask(ht));
+                }}
+            }});
+            merged.sort(function(a, b) {{ return (b.task_id || 0) - (a.task_id || 0); }});
+            return merged;
+        }})
+        .catch(function() {{
+            return HISTORICAL_TASKS.map(mapTask);
+        }});
+    }}
 
     var originalFetch = window.fetch;
     window.fetch = function(url, options) {{
@@ -120,6 +212,8 @@ supabase_bridge = f"""
 
             var found = LOCAL_MEMBERS.find(function(m) {{ return m.email.toLowerCase() === email; }});
             if (found) {{
+                loggedInUser = found;
+                try {{ sessionStorage.setItem('tw_logged_user', JSON.stringify(found)); }} catch(e) {{}}
                 return Promise.resolve(new Response(JSON.stringify({{ status: 'ok', user: found }}), {{
                     status: 200,
                     headers: {{ 'Content-Type': 'application/json' }}
@@ -132,10 +226,13 @@ supabase_bridge = f"""
             .then(function(res) {{ return res.json(); }})
             .then(function(users) {{
                 if (Array.isArray(users) && users.length > 0) {{
-                    var u = users[0];
+                    var uObj = users[0];
+                    var userData = {{ email: uObj.email, name: uObj.name, role: uObj.role, region: uObj.region, designation: uObj.designation || '' }};
+                    loggedInUser = userData;
+                    try {{ sessionStorage.setItem('tw_logged_user', JSON.stringify(userData)); }} catch(e) {{}}
                     return new Response(JSON.stringify({{
                         status: 'ok',
-                        user: {{ email: u.email, name: u.name, role: u.role, region: u.region, designation: u.designation || '' }}
+                        user: userData
                     }}), {{ status: 200, headers: {{ 'Content-Type': 'application/json' }} }});
                 }}
                 return new Response(JSON.stringify({{ error: "User not found in system" }}), {{ status: 401, headers: {{ 'Content-Type': 'application/json' }} }});
@@ -147,6 +244,8 @@ supabase_bridge = f"""
 
         // 2. LOGOUT
         if (u.indexOf('/api/logout') !== -1) {{
+            loggedInUser = null;
+            try {{ sessionStorage.removeItem('tw_logged_user'); }} catch(e) {{}}
             return Promise.resolve(new Response(JSON.stringify({{ status: 'logged_out' }}), {{ status: 200 }}));
         }}
 
@@ -177,74 +276,124 @@ supabase_bridge = f"""
             }});
         }}
 
-        // 5. GET TASKS (Merge Supabase live tasks + Historical Tasks)
-        if (u.indexOf('/api/tasks') !== -1 && method === 'GET') {{
-            return originalFetch(SB_URL + "/field_tasks?select=*,task_files(file_id,filename,file_type,size_bytes)&order=task_id.desc", {{ headers: SB_HEADERS }})
-            .then(function(res) {{ return res.json(); }})
-            .then(function(supabaseTasks) {{
-                var liveList = Array.isArray(supabaseTasks) ? supabaseTasks : [];
-                // If Supabase has tasks, format them
-                var mappedLive = liveList.map(function(t) {{
-                    t.file_count = (t.task_files || []).length;
-                    t.files = t.task_files || [];
-                    return t;
-                }});
-
-                // Merge with historical tasks (avoiding duplicate task_ids)
-                var existingIds = new Set(mappedLive.map(function(x) {{ return x.task_id; }}));
-                var merged = mappedLive.slice();
-                HISTORICAL_TASKS.forEach(function(ht) {{
-                    if (!existingIds.has(ht.task_id)) {{
-                        merged.push(ht);
-                    }}
-                }});
-
-                // Sort by task_id descending
-                merged.sort(function(a, b) {{ return (b.task_id || 0) - (a.task_id || 0); }});
-
-                return new Response(JSON.stringify(merged), {{ status: 200, headers: {{ 'Content-Type': 'application/json' }} }});
+        // 5. GET TASK FILES LIST
+        if (u.indexOf('/api/tasks/files') !== -1 && method === 'GET') {{
+            var taskIdMatch = u.match(/task_id=(\\d+)/);
+            var tid = taskIdMatch ? taskIdMatch[1] : '';
+            if (!tid) return Promise.resolve(new Response('[]', {{ status: 200, headers: {{ 'Content-Type': 'application/json' }} }}));
+            return originalFetch(SB_URL + "/task_files?task_id=eq." + tid + "&select=file_id,task_id,filename,file_type,size_bytes,uploaded_by,uploaded_at", {{ headers: SB_HEADERS }})
+            .then(function(res) {{ return res.ok ? res.json() : []; }})
+            .then(function(rows) {{
+                return new Response(JSON.stringify(Array.isArray(rows) ? rows : []), {{ status: 200, headers: {{ 'Content-Type': 'application/json' }} }});
             }})
             .catch(function() {{
-                return new Response(JSON.stringify(HISTORICAL_TASKS), {{ status: 200, headers: {{ 'Content-Type': 'application/json' }} }});
+                return new Response('[]', {{ status: 200, headers: {{ 'Content-Type': 'application/json' }} }});
+            }});
+        }}
+
+        // 5b. DOWNLOAD SINGLE TASK FILE
+        if (u.indexOf('/api/tasks/file') !== -1 && method === 'GET') {{
+            var fileIdMatch = u.match(/file_id=(\\d+)/);
+            var fid = fileIdMatch ? fileIdMatch[1] : '';
+            if (!fid) return Promise.resolve(new Response('File not found', {{ status: 404 }}));
+            return originalFetch(SB_URL + "/task_files?file_id=eq." + fid + "&select=filename,file_type,content", {{ headers: SB_HEADERS }})
+            .then(function(res) {{ return res.json(); }})
+            .then(function(rows) {{
+                if (!Array.isArray(rows) || rows.length === 0) {{
+                    return new Response('File not found', {{ status: 404 }});
+                }}
+                var f = rows[0];
+                var bytes = hexToUint8Array(f.content);
+                return new Response(bytes, {{
+                    status: 200,
+                    headers: {{
+                        'Content-Type': 'application/octet-stream',
+                        'Content-Disposition': 'attachment; filename="' + (f.filename || 'attachment') + '"'
+                    }}
+                }});
+            }});
+        }}
+
+        // 5c. NOTIFICATIONS
+        if (u.indexOf('/api/notifications') !== -1 && method === 'GET') {{
+            return fetchAllLiveTasks().then(function(tasks) {{
+                if (!loggedInUser || loggedInUser.role === 'Boss') {{
+                    return new Response(JSON.stringify({{ unseen_count: 0, tasks: [] }}), {{ status: 200, headers: {{ 'Content-Type': 'application/json' }} }});
+                }}
+                var mine = tasks.filter(function(t) {{
+                    return (t.assigned_to || '').toLowerCase() === loggedInUser.email.toLowerCase() && !t.assignee_seen_at;
+                }});
+                return new Response(JSON.stringify({{ unseen_count: mine.length, tasks: mine }}), {{ status: 200, headers: {{ 'Content-Type': 'application/json' }} }});
+            }});
+        }}
+
+        // 5d. MARK SEEN
+        if (u.indexOf('/api/tasks/mark-seen') !== -1 && method === 'POST') {{
+            var p = JSON.parse(opts.body || '{{}}');
+            return originalFetch(SB_URL + "/field_tasks?task_id=eq." + p.task_id, {{
+                method: "PATCH",
+                headers: SB_HEADERS,
+                body: JSON.stringify({{ assignee_seen_at: new Date().toISOString() }})
+            }})
+            .then(function() {{
+                return new Response(JSON.stringify({{ status: 'ok' }}), {{ status: 200, headers: {{ 'Content-Type': 'application/json' }} }});
+            }})
+            .catch(function() {{
+                return new Response(JSON.stringify({{ status: 'ok' }}), {{ status: 200, headers: {{ 'Content-Type': 'application/json' }} }});
+            }});
+        }}
+
+        // 5e. GET TASKS (Merge Supabase live tasks + Historical Tasks, filter for Member)
+        if (u.indexOf('/api/tasks') !== -1 && method === 'GET') {{
+            return fetchAllLiveTasks().then(function(merged) {{
+                if (loggedInUser && loggedInUser.role !== 'Boss') {{
+                    var myEmail = loggedInUser.email.toLowerCase();
+                    merged = merged.filter(function(t) {{
+                        return (t.assigned_to || '').toLowerCase() === myEmail;
+                    }});
+                }}
+                return new Response(JSON.stringify(merged), {{ status: 200, headers: {{ 'Content-Type': 'application/json' }} }});
             }});
         }}
 
         // 6. ANNUAL AUDIT REPORT API
         if (u.indexOf('/api/reports/annual') !== -1 && method === 'GET') {{
-            var total = HISTORICAL_TASKS.length;
-            var completed = HISTORICAL_TASKS.filter(function(x) {{ return x.status === 'Accepted'; }}).length;
-            var pending = total - completed;
-            var rate = total > 0 ? ((completed / total) * 100).toFixed(1) : "0.0";
+            return fetchAllLiveTasks().then(function(tasks) {{
+                var total = tasks.length;
+                var completed = tasks.filter(function(x) {{ return x.status === 'Accepted'; }}).length;
+                var pending = total - completed;
+                var rate = total > 0 ? ((completed / total) * 100).toFixed(1) : "0.0";
 
-            var report = {{
-                year: 2026,
-                total_tasks: total,
-                completed_tasks: completed,
-                pending_tasks: pending,
-                completion_rate_pct: rate,
-                member_stats: LOCAL_MEMBERS.map(function(m) {{
-                    var mTasks = HISTORICAL_TASKS.filter(function(t) {{ return t.assigned_to === m.email; }});
-                    var mComp = mTasks.filter(function(t) {{ return t.status === 'Accepted'; }}).length;
-                    return {{
-                        name: m.name,
-                        email: m.email,
-                        role: m.role,
-                        region: m.region,
-                        designation: m.designation,
-                        total_assigned: mTasks.length,
-                        completed_tasks: mComp,
-                        pending_tasks: mTasks.filter(function(t) {{ return t.status === 'Pending'; }}).length,
-                        in_progress_tasks: mTasks.filter(function(t) {{ return t.status === 'In Progress'; }}).length,
-                        completion_rate_pct: mTasks.length > 0 ? ((mComp / mTasks.length) * 100).toFixed(1) : "0.0"
-                    }};
-                }}),
-                tasks: HISTORICAL_TASKS
-            }};
+                var report = {{
+                    year: 2026,
+                    total_tasks: total,
+                    completed_tasks: completed,
+                    pending_tasks: pending,
+                    completion_rate_pct: rate,
+                    member_stats: LOCAL_MEMBERS.map(function(m) {{
+                        var mTasks = tasks.filter(function(t) {{ return (t.assigned_to || '').toLowerCase() === m.email.toLowerCase(); }});
+                        var mComp = mTasks.filter(function(t) {{ return t.status === 'Accepted'; }}).length;
+                        return {{
+                            name: m.name,
+                            email: m.email,
+                            role: m.role,
+                            region: m.region,
+                            designation: m.designation,
+                            total_assigned: mTasks.length,
+                            completed_tasks: mComp,
+                            pending_tasks: mTasks.filter(function(t) {{ return t.status === 'Pending'; }}).length,
+                            in_progress_tasks: mTasks.filter(function(t) {{ return t.status === 'In Progress'; }}).length,
+                            completion_rate_pct: mTasks.length > 0 ? ((mComp / mTasks.length) * 100).toFixed(1) : "0.0"
+                        }};
+                    }}),
+                    tasks: tasks
+                }};
 
-            return Promise.resolve(new Response(JSON.stringify(report), {{ status: 200, headers: {{ 'Content-Type': 'application/json' }} }}));
+                return new Response(JSON.stringify(report), {{ status: 200, headers: {{ 'Content-Type': 'application/json' }} }});
+            }});
         }}
 
-        // 7. CREATE TASK
+        // 7. CREATE TASK + SAVE KML/KMZ ATTACHMENTS TO task_files
         if (u.indexOf('/api/tasks/create') !== -1 && method === 'POST') {{
             var payload = JSON.parse(opts.body || '{{}}');
             var taskData = {{
@@ -254,11 +403,11 @@ supabase_bridge = f"""
                 region: payload.region || 'North',
                 area_name: payload.area_name || '',
                 assigned_to: payload.assigned_to,
-                assigned_by: 'fazal.admin@transworld.com',
+                assigned_by: (loggedInUser && loggedInUser.email) || 'fazal.admin@transworld.com',
                 deadline: payload.deadline,
-                priority: payload.priority,
+                priority: payload.priority || 'High',
                 status: 'Pending',
-                description: payload.description
+                description: payload.description || ''
             }};
 
             return originalFetch(SB_URL + "/field_tasks", {{
@@ -266,23 +415,65 @@ supabase_bridge = f"""
                 headers: SB_HEADERS,
                 body: JSON.stringify(taskData)
             }})
-            .then(function(res) {{ return res.json(); }})
-            .then(function(created) {{
-                return new Response(JSON.stringify({{ status: 'created', task: created[0] }}), {{ status: 200 }});
+            .then(function(res) {{
+                return res.json().then(function(data) {{ return {{ ok: res.ok, status: res.status, data: data }}; }});
+            }})
+            .then(function(result) {{
+                if (!result.ok || !Array.isArray(result.data) || result.data.length === 0) {{
+                    var errMsg = (result.data && (result.data.message || result.data.details || result.data.hint)) || ("Supabase insert failed (HTTP " + result.status + ")");
+                    return new Response(JSON.stringify({{ error: errMsg }}), {{ status: 400, headers: {{ 'Content-Type': 'application/json' }} }});
+                }}
+                var createdTask = result.data[0];
+                var files = Array.isArray(payload.files) ? payload.files : [];
+                if (files.length === 0) {{
+                    return new Response(JSON.stringify({{ status: 'created', task: mapTask(createdTask) }}), {{ status: 200, headers: {{ 'Content-Type': 'application/json' }} }});
+                }}
+                var filePromises = files.map(function(f) {{
+                    var ext = (f.filename || '').split('.').pop().toLowerCase() || 'bin';
+                    var fileRow = {{
+                        task_id: createdTask.task_id,
+                        filename: f.filename,
+                        file_type: ext,
+                        size_bytes: f.size_bytes || f.size || 0,
+                        content: f.content_base64 ? base64ToHex(f.content_base64) : null,
+                        uploaded_by: (loggedInUser && loggedInUser.email) || 'fazal.admin@transworld.com'
+                    }};
+                    return originalFetch(SB_URL + "/task_files", {{
+                        method: "POST",
+                        headers: SB_HEADERS,
+                        body: JSON.stringify(fileRow)
+                    }}).then(function(r) {{ return r.ok ? r.json() : null; }}).catch(function() {{ return null; }});
+                }});
+                return Promise.all(filePromises).then(function() {{
+                    return new Response(JSON.stringify({{ status: 'created', task: mapTask(createdTask) }}), {{ status: 200, headers: {{ 'Content-Type': 'application/json' }} }});
+                }});
+            }})
+            .catch(function(err) {{
+                return new Response(JSON.stringify({{ error: err.message || 'Network error' }}), {{ status: 500, headers: {{ 'Content-Type': 'application/json' }} }});
             }});
         }}
 
         // 8. UPDATE TASK STATUS
         if (u.indexOf('/api/tasks/update-status') !== -1 && method === 'POST') {{
             var payload = JSON.parse(opts.body || '{{}}');
+            var patchBody = {{ status: payload.status }};
+            if (payload.submission_notes !== undefined || payload.notes !== undefined) {{
+                patchBody.submission_notes = payload.submission_notes || payload.notes || '';
+            }}
+            if (payload.report_filename !== undefined) {{
+                patchBody.report_filename = payload.report_filename;
+            }}
+            if (payload.status === 'Submitted for Review') {{
+                patchBody.submitted_at = new Date().toISOString();
+            }}
             return originalFetch(SB_URL + "/field_tasks?task_id=eq." + payload.task_id, {{
                 method: "PATCH",
                 headers: SB_HEADERS,
-                body: JSON.stringify({{ status: payload.status, submission_notes: payload.notes || '' }})
+                body: JSON.stringify(patchBody)
             }})
             .then(function(res) {{ return res.json(); }})
-            .then(function(updated) {{
-                return new Response(JSON.stringify({{ status: 'updated' }}), {{ status: 200 }});
+            .then(function() {{
+                return new Response(JSON.stringify({{ status: 'updated' }}), {{ status: 200, headers: {{ 'Content-Type': 'application/json' }} }});
             }});
         }}
 
@@ -292,11 +483,15 @@ supabase_bridge = f"""
             return originalFetch(SB_URL + "/field_tasks?task_id=eq." + payload.task_id, {{
                 method: "PATCH",
                 headers: SB_HEADERS,
-                body: JSON.stringify({{ status: payload.status, boss_feedback: payload.feedback || '' }})
+                body: JSON.stringify({{
+                    status: payload.decision || payload.status,
+                    boss_feedback: payload.boss_feedback || payload.feedback || '',
+                    reviewed_at: new Date().toISOString()
+                }})
             }})
             .then(function(res) {{ return res.json(); }})
-            .then(function(updated) {{
-                return new Response(JSON.stringify({{ status: 'reviewed' }}), {{ status: 200 }});
+            .then(function() {{
+                return new Response(JSON.stringify({{ status: 'reviewed' }}), {{ status: 200, headers: {{ 'Content-Type': 'application/json' }} }});
             }});
         }}
 
