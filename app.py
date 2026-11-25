@@ -10,7 +10,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# Streamlit Top Header & Footer Hide
+
 st.markdown("""
     <style>
         #MainMenu {visibility: hidden;}
@@ -21,7 +21,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# Supabase Credentials (Streamlit Cloud Secrets se load honge)
+
 SUPABASE_URL = str(st.secrets.get("SUPABASE_URL", "")).strip().rstrip("/")
 SUPABASE_KEY = str(st.secrets.get("SUPABASE_KEY", "")).strip()
 
@@ -35,7 +35,7 @@ if os.path.exists(html_file):
     with open(html_file, "r", encoding="utf-8") as f:
         html_content = f.read()
 
-# Supabase REST Bridge
+
 supabase_bridge = f"""
 <script>
 (function() {{
@@ -48,6 +48,15 @@ supabase_bridge = f"""
         "Prefer": "return=representation"
     }};
 
+    // Built-in North Team Directory
+    var LOCAL_MEMBERS = [
+        {{ email: "fazal.admin@transworld.com", name: "Fazal ur Raheem", role: "Boss", region: "North", designation: "Admin & Operations Lead" }},
+        {{ email: "hasaan.north@transworld.com", name: "Hasaan", role: "Member", region: "North", designation: "GIS Field Engineer" }},
+        {{ email: "zain.north@transworld.com", name: "Zain", role: "Member", region: "North", designation: "GIS Field Engineer" }},
+        {{ email: "annas.north@transworld.com", name: "Annas Bashir", role: "Member", region: "North", designation: "Senior GIS Surveyor" }},
+        {{ email: "saboor.north@transworld.com", name: "Saboor Khan", role: "Member", region: "North", designation: "BOQ Estimator Lead" }}
+    ];
+
     var originalFetch = window.fetch;
     window.fetch = function(url, options) {{
         var u = typeof url === 'string' ? url : (url && url.url ? url.url : '');
@@ -59,27 +68,44 @@ supabase_bridge = f"""
             var body = {{}};
             try {{ if (opts.body) body = JSON.parse(opts.body); }} catch(e) {{}}
             var email = (body.email || '').trim().toLowerCase();
-            var pw = body.password || '';
+            var pw = (body.password || '').trim();
 
+            if (pw !== 'transworld123' && pw !== 'admin') {{
+                return Promise.resolve(new Response(JSON.stringify({{ error: "Invalid username or password" }}), {{
+                    status: 401,
+                    headers: {{ 'Content-Type': 'application/json' }}
+                }}));
+            }}
+
+            // Pehle local verified members mein check karo
+            var found = LOCAL_MEMBERS.find(function(m) {{ return m.email.toLowerCase() === email; }});
+            if (found) {{
+                return Promise.resolve(new Response(JSON.stringify({{
+                    status: 'ok',
+                    user: found
+                }}), {{
+                    status: 200,
+                    headers: {{ 'Content-Type': 'application/json' }}
+                }}));
+            }}
+
+            // Agar local mein na mile toh Supabase query karo
             return originalFetch(SB_URL + "/team_members?email=ilike." + encodeURIComponent(email) + "&select=*", {{
                 headers: SB_HEADERS
             }})
             .then(function(res) {{ return res.json(); }})
             .then(function(users) {{
                 if (Array.isArray(users) && users.length > 0) {{
-                    var user = users[0];
-                    if (pw === 'transworld123' || pw === 'admin') {{
-                        return new Response(JSON.stringify({{
-                            status: 'ok',
-                            user: {{ email: user.email, name: user.name, role: user.role, region: user.region, designation: user.designation || '' }}
-                        }}), {{ status: 200, headers: {{ 'Content-Type': 'application/json' }} }});
-                    }}
+                    var u = users[0];
+                    return new Response(JSON.stringify({{
+                        status: 'ok',
+                        user: {{ email: u.email, name: u.name, role: u.role, region: u.region, designation: u.designation || '' }}
+                    }}), {{ status: 200, headers: {{ 'Content-Type': 'application/json' }} }});
                 }}
-                return new Response(JSON.stringify({{ error: "Invalid username or password" }}), {{ status: 401, headers: {{ 'Content-Type': 'application/json' }} }});
+                return new Response(JSON.stringify({{ error: "User not found in system" }}), {{ status: 401, headers: {{ 'Content-Type': 'application/json' }} }});
             }})
             .catch(function(err) {{
-                console.error("Login bridge error:", err);
-                return new Response(JSON.stringify({{ error: "Network error while connecting to database" }}), {{ status: 500, headers: {{ 'Content-Type': 'application/json' }} }});
+                return new Response(JSON.stringify({{ error: "Database error: " + err.message }}), {{ status: 500, headers: {{ 'Content-Type': 'application/json' }} }});
             }});
         }}
 
@@ -95,7 +121,15 @@ supabase_bridge = f"""
 
         // 4. TEAMS
         if (u.indexOf('/api/teams') !== -1) {{
-            return originalFetch(SB_URL + "/team_members?select=*&order=name.asc", {{ headers: SB_HEADERS }});
+            return originalFetch(SB_URL + "/team_members?select=*&order=name.asc", {{ headers: SB_HEADERS }})
+            .then(function(res) {{ return res.json(); }})
+            .then(function(list) {{
+                var teams = (Array.isArray(list) && list.length > 0) ? list : LOCAL_MEMBERS;
+                return new Response(JSON.stringify(teams), {{ status: 200, headers: {{ 'Content-Type': 'application/json' }} }});
+            }})
+            .catch(function() {{
+                return new Response(JSON.stringify(LOCAL_MEMBERS), {{ status: 200, headers: {{ 'Content-Type': 'application/json' }} }});
+            }});
         }}
 
         // 5. GET TASKS
@@ -109,6 +143,9 @@ supabase_bridge = f"""
                     return t;
                 }});
                 return new Response(JSON.stringify(mapped), {{ status: 200, headers: {{ 'Content-Type': 'application/json' }} }});
+            }})
+            .catch(function() {{
+                return new Response(JSON.stringify([]), {{ status: 200, headers: {{ 'Content-Type': 'application/json' }} }});
             }});
         }}
 
@@ -146,7 +183,7 @@ supabase_bridge = f"""
 </script>
 """
 
-# HTML mein bridge inject karna
+
 if html_content:
     injected_html = html_content.replace("<head>", "<head>\n" + supabase_bridge, 1)
     components.html(injected_html, height=1000, scrolling=True)
