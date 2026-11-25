@@ -35,6 +35,12 @@ if os.path.exists(html_file):
     with open(html_file, "r", encoding="utf-8") as f:
         html_content = f.read()
 
+historical_tasks_path = os.path.join(os.path.dirname(__file__), "local_tasks_export.json")
+historical_tasks = []
+if os.path.exists(historical_tasks_path):
+    with open(historical_tasks_path, "r", encoding="utf-8") as f:
+        historical_tasks = json.load(f)
+
 
 supabase_bridge = f"""
 <script>
@@ -48,7 +54,8 @@ supabase_bridge = f"""
         "Prefer": "return=representation"
     }};
 
-    // Built-in North Team Directory
+    var HISTORICAL_TASKS = {json.dumps(historical_tasks)};
+
     var LOCAL_MEMBERS = [
         {{ email: "fazal.admin@transworld.com", name: "Fazal ur Raheem", role: "Boss", region: "North", designation: "Admin & Operations Lead" }},
         {{ email: "hasaan.north@transworld.com", name: "Hasaan", role: "Member", region: "North", designation: "GIS Field Engineer" }},
@@ -77,19 +84,14 @@ supabase_bridge = f"""
                 }}));
             }}
 
-            // Pehle local verified members mein check karo
             var found = LOCAL_MEMBERS.find(function(m) {{ return m.email.toLowerCase() === email; }});
             if (found) {{
-                return Promise.resolve(new Response(JSON.stringify({{
-                    status: 'ok',
-                    user: found
-                }}), {{
+                return Promise.resolve(new Response(JSON.stringify({{ status: 'ok', user: found }}), {{
                     status: 200,
                     headers: {{ 'Content-Type': 'application/json' }}
                 }}));
             }}
 
-            // Agar local mein na mile toh Supabase query karo
             return originalFetch(SB_URL + "/team_members?email=ilike." + encodeURIComponent(email) + "&select=*", {{
                 headers: SB_HEADERS
             }})
@@ -114,9 +116,49 @@ supabase_bridge = f"""
             return Promise.resolve(new Response(JSON.stringify({{ status: 'logged_out' }}), {{ status: 200 }}));
         }}
 
-        // 3. TASK CATALOG
+        // 3. TASK CATALOG (Supabase + Hardcoded fallback)
         if (u.indexOf('/api/task-catalog') !== -1) {{
-            return originalFetch(SB_URL + "/task_catalog?select=*&order=catalog_id.asc", {{ headers: SB_HEADERS }});
+            var HARDCODED_CATALOG = [
+                { catalog_id:1, task_type:"Meeting", task_name:"Requirement-Gathering Meeting", task_description:"Meet stakeholders to collect network expansion requirements for new areas and societies." },
+                { catalog_id:2, task_type:"Meeting", task_name:"Weekly Planning & GIS Meeting", task_description:"Attend the weekly meeting to discuss and resolve planning and GIS issues, review pending items and agree on actions." },
+                { catalog_id:3, task_type:"Data Management", task_name:"PON Port Data Management", task_description:"Maintain PON port records and update the related GIS/database information." },
+                { catalog_id:4, task_type:"Data Management", task_name:"As-Built Data Update", task_description:"Update as-built records and drawings in the database." },
+                { catalog_id:5, task_type:"Data Management", task_name:"GIS Data Integrity & QC", task_description:"Find and fix data anomalies, wrong labels, missing attributes and other GIS inconsistencies." },
+                { catalog_id:6, task_type:"Design & Drawing", task_name:"Splicing Plan Preparation", task_description:"Prepare fiber splicing plans for new and existing deployments." },
+                { catalog_id:7, task_type:"Design & Drawing", task_name:"Technical Drawing & Map Preparation", task_description:"Prepare network maps, CLDs (Connection Layout Diagrams) and DLDs (Detailed Layout Diagrams)." },
+                { catalog_id:8, task_type:"GIS Update", task_name:"Coverage KMZ Update", task_description:"Update the coverage KMZ with each area status: In Coverage, In Progress or Out of Coverage." },
+                { catalog_id:9, task_type:"GIS Update", task_name:"GIS Portal Coverage Map Update", task_description:"Update and maintain coverage maps on the GIS Portal." },
+                { catalog_id:10, task_type:"GIS Update", task_name:"Website Coverage Update", task_description:"Keep coverage information on the company website accurate and current." },
+                { catalog_id:11, task_type:"GIS Update", task_name:"Daily Customer Point Mapping", task_description:"Plot and maintain the day s customer points on GIS." },
+                { catalog_id:12, task_type:"GIS Update", task_name:"Parcel Preparation & DB Update", task_description:"Prepare parcels for upcoming and underdeveloped areas and add them to the GIS database." },
+                { catalog_id:13, task_type:"New Planning", task_name:"New Area Planning & BOQ", task_description:"Plan new coverage areas and prepare their Bills of Quantities (BOQs)." },
+                { catalog_id:14, task_type:"New Planning", task_name:"POP Finalization", task_description:"Survey to finalize Point of Presence locations and prepare the BOQs and Capacity Planning." },
+                { catalog_id:15, task_type:"New Planning", task_name:"Commercial Special Projects", task_description:"Support special commercial requirements such as FTTT, bank sites, schools, hospitals etc." },
+                { catalog_id:16, task_type:"New Planning", task_name:"Potential Area Data Preparation", task_description:"Prepare HP data, KMZ files and planning information for areas targeted for expansion." },
+                { catalog_id:17, task_type:"Re-Planning", task_name:"BOQ Review & Rework", task_description:"Reassess previously planned areas and revise BOQs to the updated formats and requirements." },
+                { catalog_id:18, task_type:"Re-Planning", task_name:"Network Re-Planning", task_description:"Revise existing plans for updated SOPs, changed requirements and deployment models (aerial and UG)." },
+                { catalog_id:19, task_type:"Re-Planning", task_name:"Ring Network Planning", task_description:"Prepare ring plans for existing areas, including all DCs in the ring topology where technically feasible." },
+                { catalog_id:20, task_type:"Reporting", task_name:"Network Element Data Preparation", task_description:"Prepare inventory data (splitters, FATs, DCs, cable types, lengths) for PTA, management and FLL reporting." },
+                { catalog_id:21, task_type:"Reporting", task_name:"Project Tracker Management", task_description:"Maintain and update the planning project tracker with progress, pending items and status." },
+                { catalog_id:22, task_type:"Team Support", task_name:"Operations Data Support", task_description:"Provide the Operations team with exact locations, maps, network element details and custom data." },
+                { catalog_id:23, task_type:"Team Support", task_name:"Cross-Functional Query Support", task_description:"Answer planning and feasibility queries from Sales, Access, IP, Resellers, Commercial, Corporate Connectivity, DF and CIR Connectivity." },
+                { catalog_id:24, task_type:"Team Support", task_name:"Third-Party LMP Feasibility", task_description:"Assess third-party Last-Mile Provider feasibility, maintain records and process connectivity requests." },
+                { catalog_id:25, task_type:"Survey", task_name:"As-Built Field Data Collection", task_description:"Collect and verify field data needed for as-built documentation." },
+                { catalog_id:26, task_type:"Survey", task_name:"Network Expansion Survey", task_description:"Conduct field surveys to support daily network expansion and planning." },
+                { catalog_id:27, task_type:"Survey", task_name:"MDU Survey & Planning", task_description:"Survey Multi-Dwelling Units and prepare the corresponding network plans." },
+                { catalog_id:28, task_type:"Survey", task_name:"Ops & Development Survey Support", task_description:"Conduct surveys and give technical clarification to resolve field issues, planning discrepancies and deployment problems." },
+                { catalog_id:29, task_type:"Survey", task_name:"ROW Survey", task_description:"Conduct Right-of-Way surveys and provide technical information for ROW coordination and approvals." },
+                { catalog_id:30, task_type:"Survey", task_name:"HP Survey & Verification", task_description:"Verify Homes Passed counts in new and existing areas and update the Network Loading Sheet." }
+            ];
+            return originalFetch(SB_URL + "/task_catalog?select=*&order=catalog_id.asc", {{ headers: SB_HEADERS }})
+            .then(function(res) {{ return res.json(); }})
+            .then(function(catalog) {{
+                var result = (Array.isArray(catalog) && catalog.length > 0) ? catalog : HARDCODED_CATALOG;
+                return new Response(JSON.stringify(result), {{ status: 200, headers: {{ "Content-Type": "application/json" }} }});
+            }})
+            .catch(function() {{
+                return new Response(JSON.stringify(HARDCODED_CATALOG), {{ status: 200, headers: {{ "Content-Type": "application/json" }} }});
+            }});
         }}
 
         // 4. TEAMS
@@ -132,24 +174,74 @@ supabase_bridge = f"""
             }});
         }}
 
-        // 5. GET TASKS
+        // 5. GET TASKS (Merge Supabase live tasks + Historical Tasks)
         if (u.indexOf('/api/tasks') !== -1 && method === 'GET') {{
             return originalFetch(SB_URL + "/field_tasks?select=*,task_files(file_id,filename,file_type,size_bytes)&order=task_id.desc", {{ headers: SB_HEADERS }})
             .then(function(res) {{ return res.json(); }})
-            .then(function(tasks) {{
-                var mapped = (Array.isArray(tasks) ? tasks : []).map(function(t) {{
+            .then(function(supabaseTasks) {{
+                var liveList = Array.isArray(supabaseTasks) ? supabaseTasks : [];
+                // If Supabase has tasks, format them
+                var mappedLive = liveList.map(function(t) {{
                     t.file_count = (t.task_files || []).length;
                     t.files = t.task_files || [];
                     return t;
                 }});
-                return new Response(JSON.stringify(mapped), {{ status: 200, headers: {{ 'Content-Type': 'application/json' }} }});
+
+                // Merge with historical tasks (avoiding duplicate task_ids)
+                var existingIds = new Set(mappedLive.map(function(x) {{ return x.task_id; }}));
+                var merged = mappedLive.slice();
+                HISTORICAL_TASKS.forEach(function(ht) {{
+                    if (!existingIds.has(ht.task_id)) {{
+                        merged.push(ht);
+                    }}
+                }});
+
+                // Sort by task_id descending
+                merged.sort(function(a, b) {{ return (b.task_id || 0) - (a.task_id || 0); }});
+
+                return new Response(JSON.stringify(merged), {{ status: 200, headers: {{ 'Content-Type': 'application/json' }} }});
             }})
             .catch(function() {{
-                return new Response(JSON.stringify([]), {{ status: 200, headers: {{ 'Content-Type': 'application/json' }} }});
+                return new Response(JSON.stringify(HISTORICAL_TASKS), {{ status: 200, headers: {{ 'Content-Type': 'application/json' }} }});
             }});
         }}
 
-        // 6. CREATE TASK
+        // 6. ANNUAL AUDIT REPORT API
+        if (u.indexOf('/api/reports/annual') !== -1 && method === 'GET') {{
+            var total = HISTORICAL_TASKS.length;
+            var completed = HISTORICAL_TASKS.filter(function(x) {{ return x.status === 'Accepted'; }}).length;
+            var pending = total - completed;
+            var rate = total > 0 ? ((completed / total) * 100).toFixed(1) : "0.0";
+
+            var report = {{
+                year: 2026,
+                total_tasks: total,
+                completed_tasks: completed,
+                pending_tasks: pending,
+                completion_rate_pct: rate,
+                member_stats: LOCAL_MEMBERS.map(function(m) {{
+                    var mTasks = HISTORICAL_TASKS.filter(function(t) {{ return t.assigned_to === m.email; }});
+                    var mComp = mTasks.filter(function(t) {{ return t.status === 'Accepted'; }}).length;
+                    return {{
+                        name: m.name,
+                        email: m.email,
+                        role: m.role,
+                        region: m.region,
+                        designation: m.designation,
+                        total_assigned: mTasks.length,
+                        completed_tasks: mComp,
+                        pending_tasks: mTasks.filter(function(t) {{ return t.status === 'Pending'; }}).length,
+                        in_progress_tasks: mTasks.filter(function(t) {{ return t.status === 'In Progress'; }}).length,
+                        completion_rate_pct: mTasks.length > 0 ? ((mComp / mTasks.length) * 100).toFixed(1) : "0.0"
+                    }};
+                }}),
+                tasks: HISTORICAL_TASKS
+            }};
+
+            return Promise.resolve(new Response(JSON.stringify(report), {{ status: 200, headers: {{ 'Content-Type': 'application/json' }} }}));
+        }}
+
+        // 7. CREATE TASK
         if (u.indexOf('/api/tasks/create') !== -1 && method === 'POST') {{
             var payload = JSON.parse(opts.body || '{{}}');
             var taskData = {{
@@ -174,6 +266,34 @@ supabase_bridge = f"""
             .then(function(res) {{ return res.json(); }})
             .then(function(created) {{
                 return new Response(JSON.stringify({{ status: 'created', task: created[0] }}), {{ status: 200 }});
+            }});
+        }}
+
+        // 8. UPDATE TASK STATUS
+        if (u.indexOf('/api/tasks/update-status') !== -1 && method === 'POST') {{
+            var payload = JSON.parse(opts.body || '{{}}');
+            return originalFetch(SB_URL + "/field_tasks?task_id=eq." + payload.task_id, {{
+                method: "PATCH",
+                headers: SB_HEADERS,
+                body: JSON.stringify({{ status: payload.status, submission_notes: payload.notes || '' }})
+            }})
+            .then(function(res) {{ return res.json(); }})
+            .then(function(updated) {{
+                return new Response(JSON.stringify({{ status: 'updated' }}), {{ status: 200 }});
+            }});
+        }}
+
+        // 9. REVIEW TASK (Admin Accept / Reject)
+        if (u.indexOf('/api/tasks/review') !== -1 && method === 'POST') {{
+            var payload = JSON.parse(opts.body || '{{}}');
+            return originalFetch(SB_URL + "/field_tasks?task_id=eq." + payload.task_id, {{
+                method: "PATCH",
+                headers: SB_HEADERS,
+                body: JSON.stringify({{ status: payload.status, boss_feedback: payload.feedback || '' }})
+            }})
+            .then(function(res) {{ return res.json(); }})
+            .then(function(updated) {{
+                return new Response(JSON.stringify({{ status: 'reviewed' }}), {{ status: 200 }});
             }});
         }}
 
