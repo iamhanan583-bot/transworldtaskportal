@@ -10,7 +10,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# Streamlit Top Header & Footer Hide
+
 st.markdown("""
     <style>
         #MainMenu {visibility: hidden;}
@@ -21,8 +21,10 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# Supabase Credentials (Streamlit Cloud Secrets)
+
 SUPABASE_URL = str(st.secrets.get("SUPABASE_URL", "")).strip().rstrip("/")
+if "/rest/v1" in SUPABASE_URL:
+    SUPABASE_URL = SUPABASE_URL.split("/rest/v1")[0].rstrip("/")
 SUPABASE_KEY = str(st.secrets.get("SUPABASE_KEY", "")).strip()
 
 if not SUPABASE_URL or not SUPABASE_KEY:
@@ -35,7 +37,7 @@ if os.path.exists(html_file):
     with open(html_file, "r", encoding="utf-8") as f:
         html_content = f.read()
 
-# Load all 14 historical tasks exported from local PostgreSQL
+
 historical_tasks_path = os.path.join(os.path.dirname(__file__), "local_tasks_export.json")
 historical_tasks = []
 if os.path.exists(historical_tasks_path):
@@ -501,7 +503,7 @@ supabase_bridge = f"""
 </script>
 """
 
-# HTML mein bridge inject karna
+
 if html_content:
     injected_html = html_content.replace("<head>", "<head>\n" + supabase_bridge, 1)
     components.html(injected_html, height=1000, scrolling=True)
