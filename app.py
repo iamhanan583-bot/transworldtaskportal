@@ -1,6 +1,7 @@
 import streamlit as st
 import streamlit.components.v1 as components
 import os
+import json
 
 st.set_page_config(
     page_title="Transworld Task Portal",
@@ -20,9 +21,13 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# Supabase Credentials 
-SUPABASE_URL = "https://YOUR_PROJECT_REF.supabase.co"
-SUPABASE_KEY = "YOUR_ANON_PUBLIC_KEY"
+# Supabase Credentials (Streamlit Cloud Secrets se load honge)
+SUPABASE_URL = str(st.secrets.get("SUPABASE_URL", "")).strip().rstrip("/")
+SUPABASE_KEY = str(st.secrets.get("SUPABASE_KEY", "")).strip()
+
+if not SUPABASE_URL or not SUPABASE_KEY:
+    st.error("Missing SUPABASE_URL or SUPABASE_KEY in Streamlit Secrets.")
+    st.stop()
 
 html_file = os.path.join(os.path.dirname(__file__), "index.html")
 html_content = ""
@@ -34,8 +39,8 @@ if os.path.exists(html_file):
 supabase_bridge = f"""
 <script>
 (function() {{
-    var SB_URL = "{SUPABASE_URL}/rest/v1";
-    var SB_KEY = "{SUPABASE_KEY}";
+    var SB_URL = {json.dumps(SUPABASE_URL)} + "/rest/v1";
+    var SB_KEY = {json.dumps(SUPABASE_KEY)};
     var SB_HEADERS = {{
         "apikey": SB_KEY,
         "Authorization": "Bearer " + SB_KEY,
@@ -61,7 +66,7 @@ supabase_bridge = f"""
             }})
             .then(function(res) {{ return res.json(); }})
             .then(function(users) {{
-                if (users && users.length > 0) {{
+                if (Array.isArray(users) && users.length > 0) {{
                     var user = users[0];
                     if (pw === 'transworld123' || pw === 'admin') {{
                         return new Response(JSON.stringify({{
@@ -71,6 +76,10 @@ supabase_bridge = f"""
                     }}
                 }}
                 return new Response(JSON.stringify({{ error: "Invalid username or password" }}), {{ status: 401, headers: {{ 'Content-Type': 'application/json' }} }});
+            }})
+            .catch(function(err) {{
+                console.error("Login bridge error:", err);
+                return new Response(JSON.stringify({{ error: "Network error while connecting to database" }}), {{ status: 500, headers: {{ 'Content-Type': 'application/json' }} }});
             }});
         }}
 
@@ -94,7 +103,7 @@ supabase_bridge = f"""
             return originalFetch(SB_URL + "/field_tasks?select=*,task_files(file_id,filename,file_type,size_bytes)&order=task_id.desc", {{ headers: SB_HEADERS }})
             .then(function(res) {{ return res.json(); }})
             .then(function(tasks) {{
-                var mapped = (tasks || []).map(function(t) {{
+                var mapped = (Array.isArray(tasks) ? tasks : []).map(function(t) {{
                     t.file_count = (t.task_files || []).length;
                     t.files = t.task_files || [];
                     return t;
@@ -137,7 +146,7 @@ supabase_bridge = f"""
 </script>
 """
 
-# HTML 
+# HTML mein bridge inject karna
 if html_content:
     injected_html = html_content.replace("<head>", "<head>\n" + supabase_bridge, 1)
     components.html(injected_html, height=1000, scrolling=True)
