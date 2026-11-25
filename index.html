@@ -4,8 +4,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Transworld Task Portal</title>
+<!-- Leaflet CSS -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<!-- JSZip for KMZ extraction -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<!-- Leaflet JS -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 
 <style>
@@ -27,11 +30,13 @@ html,body{height:100%;margin:0;font-family:"Segoe UI",Roboto,Arial,sans-serif;fo
   --purple:#8957e5;
 }
 
+/* Scrollbar */
 ::-webkit-scrollbar{width:6px;height:6px}
 ::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{background:#30363d;border-radius:3px}
 ::-webkit-scrollbar-thumb:hover{background:#484f58}
 
+/* LOGIN SCREEN */
 #login-screen{
   position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;
   background:radial-gradient(circle at 50% 35%,#13286a,#070d33 60%,#040821);
@@ -64,6 +69,7 @@ html,body{height:100%;margin:0;font-family:"Segoe UI",Roboto,Arial,sans-serif;fo
   color:#ff7b72;font-size:12px;text-align:center;margin-top:12px;min-height:16px;line-height:1.4;
 }
 
+/* TOP APP BAR */
 #app-header{
   height:50px;background:var(--bg-card);border-bottom:1px solid var(--border);
   display:flex;align-items:center;justify-content:space-between;padding:0 20px;flex:none;z-index:1000;
@@ -90,9 +96,11 @@ html,body{height:100%;margin:0;font-family:"Segoe UI",Roboto,Arial,sans-serif;fo
 }
 .btn-logout:hover{background:#30363d;color:#fff}
 
+/* APP SHELL */
 #app{display:none;height:100%;flex-direction:column}
 #main-container{flex:1;display:flex;min-height:0;overflow:hidden;position:relative}
 
+/* SIDE NAVIGATION */
 #side-nav{
   width:220px;background:var(--bg-card);border-right:1px solid var(--border);
   display:flex;flex-direction:column;flex:none;padding:16px 10px;gap:6px;user-select:none;
@@ -109,9 +117,11 @@ html,body{height:100%;margin:0;font-family:"Segoe UI",Roboto,Arial,sans-serif;fo
   padding:1px 6px;border-radius:10px;min-width:18px;text-align:center;
 }
 
+/* CONTENT VIEWPORT & FULLSCREEN MAP */
 #content-pane{flex:1;display:flex;position:relative;overflow:hidden;background:#06090f}
 #fullscreen-map{position:absolute;inset:0;width:100%;height:100%;z-index:1}
 
+/* Map Base Layer Switcher */
 .map-layer-switch{
   position:absolute;top:16px;right:16px;z-index:999;background:rgba(22,27,34,0.92);
   border:1px solid var(--border);border-radius:6px;padding:4px;display:flex;gap:4px;
@@ -124,6 +134,7 @@ html,body{height:100%;margin:0;font-family:"Segoe UI",Roboto,Arial,sans-serif;fo
 .layer-btn:hover{color:#fff;background:rgba(255,255,255,0.08)}
 .layer-btn.active{background:var(--blue);color:#fff}
 
+/* OVERLAY MODAL / SLIDE-IN PANELS */
 .pane-view{
   display:none;position:absolute;top:20px;bottom:20px;left:20px;right:20px;max-width:1200px;margin:auto;
   background:rgba(13,17,23,0.97);border:1px solid var(--border);border-radius:10px;
@@ -137,10 +148,12 @@ html,body{height:100%;margin:0;font-family:"Segoe UI",Roboto,Arial,sans-serif;fo
 }
 .panel-close-btn:hover{background:#30363d;color:#fff}
 
+/* HEADINGS & CARDS */
 .page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
 .page-title{font-size:22px;font-weight:700;color:#fff;margin:0}
 .page-sub{font-size:13px;color:var(--text-muted);margin:2px 0 0 0}
 
+/* SUMMARY METRIC CARDS */
 .summary-grid{
   display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:10px;
 }
@@ -158,6 +171,7 @@ html,body{height:100%;margin:0;font-family:"Segoe UI",Roboto,Arial,sans-serif;fo
 .metric-val.accepted{color:#3fb950}
 .metric-val.rejected{color:#ff7b72}
 
+/* FORMS (ASSIGN TASK) */
 .form-card{
   background:var(--bg-card);border:1px solid var(--border);border-radius:8px;
   padding:22px 24px;max-width:920px;display:flex;flex-direction:column;gap:16px;
@@ -174,6 +188,7 @@ html,body{height:100%;margin:0;font-family:"Segoe UI",Roboto,Arial,sans-serif;fo
   border-color:var(--blue);background:#161b22;
 }
 
+/* FILE ATTACHMENT BOX */
 .attach-box{
   border:2px dashed var(--border);border-radius:6px;padding:16px;text-align:center;
   background:#0d1117;transition:border-color 0.2s;cursor:pointer;
@@ -189,6 +204,7 @@ html,body{height:100%;margin:0;font-family:"Segoe UI",Roboto,Arial,sans-serif;fo
   color:#ff7b72;cursor:pointer;font-weight:bold;font-size:14px;line-height:1;
 }
 
+/* TABLE & FILTERS */
 .table-filters{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
 .table-filters select{
   padding:6px 12px;background:var(--bg-card);border:1px solid var(--border);
@@ -209,6 +225,7 @@ table.task-table tbody tr{cursor:pointer;transition:background 0.15s}
 table.task-table tbody tr:hover{background:var(--bg-hover)}
 table.task-table tbody tr.selected-row{background:rgba(43,139,230,0.12)}
 
+/* BADGES */
 .badge-status{
   display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700;
 }
@@ -226,6 +243,7 @@ table.task-table tbody tr.selected-row{background:rgba(43,139,230,0.12)}
 .pri-medium{background:rgba(210,153,34,0.2);color:#e3b341;border:1px solid rgba(210,153,34,0.4)}
 .pri-low{background:rgba(110,118,129,0.2);color:#8b949e;border:1px solid rgba(110,118,129,0.4)}
 
+/* DETAILS / REVIEW DRAWER */
 .details-panel{
   background:var(--bg-card);border:1px solid var(--border);border-radius:8px;
   padding:20px;display:none;flex-direction:column;gap:14px;margin-top:14px;
@@ -235,6 +253,7 @@ table.task-table tbody tr.selected-row{background:rgba(43,139,230,0.12)}
 .detail-item label{font-size:11px;font-weight:600;color:var(--text-muted);display:block;margin-bottom:2px}
 .detail-item div{font-size:13px;color:#fff}
 
+/* BUTTONS */
 .btn-pri{
   background:var(--blue-hover);color:#fff;border:0;padding:8px 16px;border-radius:6px;
   cursor:pointer;font-size:12.5px;font-weight:600;transition:background 0.15s;
@@ -257,6 +276,7 @@ table.task-table tbody tr.selected-row{background:rgba(43,139,230,0.12)}
 }
 .btn-red:hover{opacity:0.9}
 
+/* MAP MODAL (OPEN IN MAP) */
 #map-modal{
   position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,0.85);backdrop-filter:blur(8px);
   display:none;align-items:center;justify-content:center;padding:20px;
@@ -282,6 +302,7 @@ table.task-table tbody tr.selected-row{background:rgba(43,139,230,0.12)}
 }
 .feature-item:hover{background:#21262d;color:#fff}
 
+/* TOAST NOTIFICATION */
 #toast-container{
   position:fixed;bottom:24px;right:24px;z-index:99999;display:flex;flex-direction:column;gap:10px;
 }
@@ -295,6 +316,7 @@ table.task-table tbody tr.selected-row{background:rgba(43,139,230,0.12)}
 </head>
 <body>
 
+<!-- 1) LOGIN SCREEN -->
 <div id="login-screen">
   <div class="login-box">
     <div class="login-title">Login</div>
@@ -314,7 +336,9 @@ table.task-table tbody tr.selected-row{background:rgba(43,139,230,0.12)}
   </div>
 </div>
 
+<!-- 2) APP SHELL -->
 <div id="app">
+  <!-- TOP BAR -->
   <header id="app-header">
     <div class="brand">
       <span>Transworld</span>
@@ -329,8 +353,11 @@ table.task-table tbody tr.selected-row{background:rgba(43,139,230,0.12)}
     </div>
   </header>
 
+  <!-- WORKSPACE -->
   <div id="main-container">
+    <!-- LEFT SIDEBAR NAV -->
     <nav id="side-nav">
+      <!-- Admin Navigation -->
       <div id="nav-group-admin" style="display:none;flex-direction:column;gap:6px">
         <button class="nav-btn active" id="nav-btn-admin-map" onclick="switchNavTab('map')">
           <span>Map View</span>
@@ -346,6 +373,7 @@ table.task-table tbody tr.selected-row{background:rgba(43,139,230,0.12)}
         </button>
       </div>
 
+      <!-- Field Member Navigation -->
       <div id="nav-group-member" style="display:none;flex-direction:column;gap:6px">
         <button class="nav-btn active" id="nav-btn-member-map" onclick="switchNavTab('map')">
           <span>Map View</span>
@@ -357,15 +385,21 @@ table.task-table tbody tr.selected-row{background:rgba(43,139,230,0.12)}
       </div>
     </nav>
 
+    <!-- CONTENT VIEWPORT -->
     <main id="content-pane">
+      <!-- FULL-SCREEN SATELLITE & STREET MAP -->
       <div id="fullscreen-map"></div>
 
+      <!-- MAP BASE LAYER SWITCHER -->
       <div class="map-layer-switch">
         <button type="button" class="layer-btn active" id="btn-layer-satellite" onclick="switchMapBaseLayer('satellite')">Satellite</button>
         <button type="button" class="layer-btn" id="btn-layer-streets" onclick="switchMapBaseLayer('streets')">Streets</button>
         <button type="button" class="layer-btn" id="btn-clear-map" onclick="clearFullMapFeatures()" title="Clear plotted KML features">Clear Overlay</button>
       </div>
 
+      <!-- ============================================================= -->
+      <!-- PANE 1: ADMIN - ASSIGN TASK -->
+      <!-- ============================================================= -->
       <div class="pane-view" id="view-assign-task">
         <div class="page-header">
           <div>
@@ -380,12 +414,14 @@ table.task-table tbody tr.selected-row{background:rgba(43,139,230,0.12)}
             <div class="form-group">
               <label>Task Type *</label>
               <select id="task-type" onchange="onTaskTypeChanged()" required>
+                <!-- Populated dynamically from Word file task types -->
               </select>
             </div>
 
             <div class="form-group">
               <label>Task Name *</label>
               <select id="task-name-select" onchange="onTaskNameChanged()" required>
+                <!-- Populated based on selected Task Type -->
               </select>
             </div>
           </div>
@@ -404,6 +440,7 @@ table.task-table tbody tr.selected-row{background:rgba(43,139,230,0.12)}
             <div class="form-group">
               <label>Assign Member *</label>
               <select id="task-assignee" required>
+                <!-- Populated dynamically: Hasaan, Zain, Annas Bashir, Saboor Khan -->
               </select>
             </div>
 
@@ -430,6 +467,7 @@ table.task-table tbody tr.selected-row{background:rgba(43,139,230,0.12)}
             </div>
           </div>
 
+          <!-- Attach File (All types supported) -->
           <div class="form-group">
             <label>Attach File (Any format: KML, KMZ, PDF, DWG, Images, Docs, Excel, etc.)</label>
             <div class="attach-box" onclick="$('all-file-input').click()">
@@ -448,6 +486,9 @@ table.task-table tbody tr.selected-row{background:rgba(43,139,230,0.12)}
         </form>
       </div>
 
+      <!-- ============================================================= -->
+      <!-- PANE 2: ADMIN - MY ASSIGNED TASKS -->
+      <!-- ============================================================= -->
       <div class="pane-view" id="view-admin-tasks">
         <div class="page-header">
           <div>
@@ -457,6 +498,7 @@ table.task-table tbody tr.selected-row{background:rgba(43,139,230,0.12)}
           <button class="panel-close-btn" onclick="switchNavTab('map')">✕ Close to Map</button>
         </div>
 
+        <!-- Summary Metric Cards -->
         <div class="summary-grid">
           <div class="metric-card" onclick="filterByCardStatus('Pending')">
             <div class="metric-label">Pending</div>
@@ -480,6 +522,7 @@ table.task-table tbody tr.selected-row{background:rgba(43,139,230,0.12)}
           </div>
         </div>
 
+        <!-- Filters Row -->
         <div class="table-filters">
           <select id="filt-admin-region" onchange="renderAdminTasksTable()">
             <option value="All">All Regions</option>
@@ -498,6 +541,7 @@ table.task-table tbody tr.selected-row{background:rgba(43,139,230,0.12)}
           </select>
         </div>
 
+        <!-- Tasks Table -->
         <div class="table-wrap">
           <table class="task-table" id="admin-task-table">
             <thead>
@@ -513,10 +557,12 @@ table.task-table tbody tr.selected-row{background:rgba(43,139,230,0.12)}
               </tr>
             </thead>
             <tbody id="admin-table-body">
+              <!-- Dynamically populated rows -->
             </tbody>
           </table>
         </div>
 
+        <!-- Task Details & Review Box (Below Table) -->
         <div class="details-panel" id="admin-details-panel">
           <div style="display:flex;justify-content:space-between;align-items:flex-start">
             <div>
@@ -558,6 +604,9 @@ table.task-table tbody tr.selected-row{background:rgba(43,139,230,0.12)}
         </div>
       </div>
 
+      <!-- ============================================================= -->
+      <!-- PANE 3: ADMIN - ANNUAL AUDIT REPORT & YEAR HISTORY -->
+      <!-- ============================================================= -->
       <div class="pane-view" id="view-annual-report">
         <div class="page-header">
           <div>
@@ -575,6 +624,7 @@ table.task-table tbody tr.selected-row{background:rgba(43,139,230,0.12)}
           </div>
         </div>
 
+        <!-- Annual Summary Grid -->
         <div class="summary-grid">
           <div class="metric-card">
             <div class="metric-label">Total Assigned in Year</div>
@@ -594,6 +644,7 @@ table.task-table tbody tr.selected-row{background:rgba(43,139,230,0.12)}
           </div>
         </div>
 
+        <!-- 1. Member Performance Breakdown Table -->
         <h3 style="font-size:15px;color:#fff;margin:16px 0 8px 0">Team Member Annual Performance</h3>
         <div class="table-wrap" style="margin-bottom:20px">
           <table class="task-table" id="annual-member-table">
@@ -612,10 +663,12 @@ table.task-table tbody tr.selected-row{background:rgba(43,139,230,0.12)}
               </tr>
             </thead>
             <tbody id="annual-member-tbody">
+              <!-- Dynamically populated -->
             </tbody>
           </table>
         </div>
 
+        <!-- 2. Detailed Task History of the Year -->
         <h3 style="font-size:15px;color:#fff;margin:16px 0 8px 0">Complete Annual Task Logs & Attached Files</h3>
         <div class="table-wrap">
           <table class="task-table" id="annual-tasks-table">
@@ -632,11 +685,15 @@ table.task-table tbody tr.selected-row{background:rgba(43,139,230,0.12)}
               </tr>
             </thead>
             <tbody id="annual-tasks-tbody">
+              <!-- Dynamically populated -->
             </tbody>
           </table>
         </div>
       </div>
 
+      <!-- ============================================================= -->
+      <!-- PANE 4: FIELD MEMBER - MY TASKS -->
+      <!-- ============================================================= -->
       <div class="pane-view" id="view-member-tasks">
         <div class="page-header">
           <div>
@@ -660,10 +717,12 @@ table.task-table tbody tr.selected-row{background:rgba(43,139,230,0.12)}
               </tr>
             </thead>
             <tbody id="member-table-body">
+              <!-- Dynamically populated rows -->
             </tbody>
           </table>
         </div>
 
+        <!-- Member Task Details & Submission Panel -->
         <div class="details-panel" id="member-details-panel">
           <div style="display:flex;justify-content:space-between;align-items:flex-start">
             <div>
@@ -684,16 +743,21 @@ table.task-table tbody tr.selected-row{background:rgba(43,139,230,0.12)}
             </div>
           </div>
 
+          <!-- Boss Feedback Box if Present (especially after Rejection) -->
           <div id="mem-feedback-box" style="display:none;background:rgba(218,54,51,0.12);border:1px solid rgba(218,54,51,0.3);padding:10px 14px;border-radius:6px">
             <div style="font-size:11px;font-weight:700;color:#ff7b72" id="mem-feedback-title">ADMIN FEEDBACK:</div>
             <div id="mem-feedback-text" style="font-size:13px;color:#fff;margin-top:4px"></div>
           </div>
 
+          <!-- Member Action Buttons -->
           <div id="mem-action-bar" style="display:flex;gap:12px;border-top:1px solid var(--border);padding-top:14px">
+            <!-- Start Task Button -->
             <button class="btn-pri" id="btn-start-task" onclick="handleStartTask()" style="display:none">Start Task</button>
+            <!-- Open Submit Form Button -->
             <button class="btn-green" id="btn-open-submit" onclick="toggleMemberSubmitForm()" style="display:none">Submit for Review</button>
           </div>
 
+          <!-- Submit Work Form -->
           <div id="member-submit-form" style="display:none;background:#0d1117;border:1px solid var(--border);padding:16px;border-radius:6px;margin-top:10px">
             <h3 style="font-size:14px;color:#fff;margin:0 0 10px 0" id="mem-submit-form-title">Submit Task Completion</h3>
             <div class="form-group" style="margin-bottom:12px">
@@ -716,6 +780,7 @@ table.task-table tbody tr.selected-row{background:rgba(43,139,230,0.12)}
   </div>
 </div>
 
+<!-- 5) "OPEN IN MAP" (KML / KMZ VIEWER MODAL) -->
 <div id="map-modal">
   <div class="map-modal-box">
     <div class="map-modal-hdr">
@@ -726,6 +791,7 @@ table.task-table tbody tr.selected-row{background:rgba(43,139,230,0.12)}
       <button class="btn-sec" onclick="closeMapModal()" style="padding:4px 10px">&times; Close</button>
     </div>
     <div class="map-modal-body">
+      <!-- Side Features List & Details -->
       <div class="map-side-info">
         <div>
           <div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase">Task Details</div>
@@ -744,18 +810,24 @@ table.task-table tbody tr.selected-row{background:rgba(43,139,230,0.12)}
             <button class="btn-sec" onclick="clearMapFeatures()" style="padding:2px 8px;font-size:11px">Clear</button>
           </div>
           <div class="features-list" id="map-features-list">
+            <!-- Feature items clickable to zoom -->
           </div>
         </div>
       </div>
 
+      <!-- Leaflet Map Container -->
       <div id="leaflet-kml-map"></div>
     </div>
   </div>
 </div>
 
+<!-- TOAST CONTAINER -->
 <div id="toast-container"></div>
 
 <script>
+/* =========================================================================
+   APPLICATION STATE & UTILITIES
+   ========================================================================= */
 var $ = function(id) { return document.getElementById(id); };
 
 function escapeHtml(s) {
@@ -929,7 +1001,7 @@ var taskCatalog = [
     "task_description": "Verify Homes Passed counts in new and existing areas and update the Network Loading Sheet."
   }
 ];
-var attachedFilesList = [];
+var attachedFilesList = []; // for task creation [{filename, content_base64, size}]
 var selectedTask = null;
 var currentAnnualData = null;
 var kmlMap = null;
@@ -938,6 +1010,9 @@ var kmlFeatureBounds = [];
 var notificationInterval = null;
 var knownUnseenTaskIds = new Set();
 
+/* =========================================================================
+   1) LOGIN & AUTHENTICATION
+   ========================================================================= */
 function handleLoginSubmit(e) {
   if (e) e.preventDefault();
   var email = $('login-email').value.trim();
@@ -990,6 +1065,7 @@ function onLoginSuccess(user) {
   $('login-screen').style.display = 'none';
   $('app').style.display = 'flex';
 
+  // Update Top Bar
   var roleTag = $('hdr-role-tag');
   if (currentUser.role === 'Boss') {
     roleTag.textContent = 'Admin';
@@ -1005,9 +1081,11 @@ function onLoginSuccess(user) {
   }
   $('hdr-user-name').textContent = currentUser.name;
 
+  // Initialize and show Fullscreen Satellite Map immediately upon login
   initFullscreenMap();
   switchNavTab('map');
 
+  // Load Teams, Tasks, and Catalog
   fetchTeamsData();
   fetchTasksData();
   fetchTaskCatalog();
@@ -1027,6 +1105,9 @@ function handleLogout() {
     });
 }
 
+/* =========================================================================
+   NAVIGATION TABS
+   ========================================================================= */
 function switchNavTab(tabId) {
   var views = document.querySelectorAll('.pane-view');
   views.forEach(function(v) { v.classList.remove('active'); });
@@ -1062,6 +1143,9 @@ function switchNavTab(tabId) {
   }
 }
 
+/* =========================================================================
+   TEAMS & TASK DATA FETCHING
+   ========================================================================= */
 function fetchTeamsData() {
   fetch('/api/teams', { credentials: 'same-origin' })
     .then(function(r) { return r.json(); })
@@ -1102,6 +1186,9 @@ function fetchTaskCatalog() {
     });
 }
 
+/* =========================================================================
+   TASK CATALOG & TEMPLATES
+   ========================================================================= */
 function populateCatalogTypeDropdown() {
   var taskTypeForm = $('task-type');
   if (!taskTypeForm) return;
@@ -1134,6 +1221,7 @@ function onTaskTypeChanged() {
     return '<option value="' + esc(item.task_name) + '">' + esc(item.task_name) + '</option>';
   }).join('');
 
+  // Clear or auto-select
   $('task-desc').value = '';
 }
 
@@ -1150,6 +1238,9 @@ function onTaskNameChanged() {
   }
 }
 
+/* =========================================================================
+   3) ADMIN SECTION
+   ========================================================================= */
 function onRegionSelected() {
   populateAssigneeDropdown();
 }
@@ -1158,6 +1249,7 @@ function populateAssigneeDropdown() {
   var sel = $('task-assignee');
   if (!sel) return;
 
+  // Dedicated North field members from Word file (Hasaan, Zain, Annas Bashir, Saboor Khan)
   var members = allTeams.filter(function(m) {
     return m.role !== 'Boss';
   });
@@ -1176,6 +1268,7 @@ function populateAdminMemberFilter() {
   }).join('');
 }
 
+// File Attachment handling (supports all types of files)
 function handleFileSelection(event) {
   var files = Array.from(event.target.files);
   if (!files || files.length === 0) return;
@@ -1294,6 +1387,7 @@ function handleCreateTask(e) {
   });
 }
 
+// Admin Tasks Table & Summary
 function filterByCardStatus(st) {
   $('filt-admin-status').value = st;
   renderAdminTasksTable();
@@ -1307,6 +1401,7 @@ function renderAdminTasksTable() {
   var memberFilter = $('filt-admin-member').value;
   var statusFilter = $('filt-admin-status').value;
 
+  // Counts
   var pCount = 0, prCount = 0, rCount = 0, aCount = 0, rejCount = 0;
   allTasks.forEach(function(t) {
     if (t.status === 'Pending') pCount++;
@@ -1321,6 +1416,7 @@ function renderAdminTasksTable() {
   $('count-accepted').textContent = aCount;
   $('count-rejected').textContent = rejCount;
 
+  // Update card active styles
   var cards = document.querySelectorAll('.metric-card');
   cards.forEach(function(c) { c.classList.remove('active-filter'); });
   if (statusFilter !== 'All') {
@@ -1328,6 +1424,7 @@ function renderAdminTasksTable() {
     if (cardIdx !== undefined && cards[cardIdx]) cards[cardIdx].classList.add('active-filter');
   }
 
+  // Filter list
   var filtered = allTasks.filter(function(t) {
     if (regFilter !== 'All' && t.region !== regFilter) return false;
     if (memberFilter !== 'All' && t.assigned_to !== memberFilter) return false;
@@ -1375,8 +1472,10 @@ function selectAdminTask(taskId) {
   $('admin-det-meta').textContent = 'Type: ' + t.task_type + ' | Region: ' + t.region + ' | Area: ' + (t.area_name || 'N/A') + ' | Assigned To: ' + (t.assignee_name || t.assigned_to);
   $('admin-det-desc').textContent = t.description || 'No description provided.';
 
+  // Load attached files
   loadTaskFiles(t.task_id, $('admin-det-files'));
 
+  // Review section
   var revSec = $('admin-review-section');
   if (t.status === 'Submitted for Review') {
     revSec.style.display = 'block';
@@ -1410,6 +1509,9 @@ function submitAdminDecision(decision) {
   .catch(function(e) { alert('Error recording decision: ' + e); });
 }
 
+/* =========================================================================
+   ANNUAL AUDIT REPORT & HISTORY
+   ========================================================================= */
 function loadAnnualReport() {
   var year = $('annual-year-select') ? $('annual-year-select').value : '2026';
 
@@ -1430,6 +1532,7 @@ function renderAnnualReportView(data) {
   $('ann-pending-tasks').textContent = data.pending_tasks || 0;
   $('ann-rate-tasks').textContent = (data.completion_rate_pct || 0) + '%';
 
+  // 1. Members Breakdown Table
   var mbody = $('annual-member-tbody');
   if (mbody) {
     var stats = data.member_stats || [];
@@ -1462,6 +1565,7 @@ function renderAnnualReportView(data) {
     }
   }
 
+  // 2. Annual Tasks Table
   var tbody = $('annual-tasks-tbody');
   if (tbody) {
     var tasks = data.tasks || [];
@@ -1530,17 +1634,25 @@ function exportAnnualReportCSV() {
   document.body.removeChild(link);
 }
 
+/* =========================================================================
+   4) FIELD MEMBER SECTION
+   ========================================================================= */
 function renderMemberTasksTable() {
   var tbody = $('member-table-body');
   if (!tbody) return;
 
-  if (allTasks.length === 0) {
+  var myEmail = (currentUser && currentUser.email) ? currentUser.email.toLowerCase() : '';
+  var myTasks = (currentUser && currentUser.role !== 'Boss' && myEmail)
+    ? allTasks.filter(function(t) { return (t.assigned_to || '').toLowerCase() === myEmail; })
+    : allTasks;
+
+  if (myTasks.length === 0) {
     tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:30px;color:var(--text-muted);font-size:14px">No tasks assigned to you yet</td></tr>';
     $('member-details-panel').classList.remove('open');
     return;
   }
 
-  tbody.innerHTML = allTasks.map(function(t) {
+  tbody.innerHTML = myTasks.map(function(t) {
     var isSel = selectedTask && selectedTask.task_id === t.task_id;
     var statusCls = getStatusBadgeClass(t.status);
     var priCls = getPriorityBadgeClass(t.priority);
@@ -1674,6 +1786,7 @@ function handleConfirmSubmission() {
   .catch(function(e) { alert('Error submitting task: ' + e); });
 }
 
+// Notifications Polling (Every 30s)
 function startNotificationPolling() {
   checkNotifications();
   if (notificationInterval) clearInterval(notificationInterval);
@@ -1718,6 +1831,9 @@ function showToast(msg) {
   }, 6000);
 }
 
+/* =========================================================================
+   TASK FILES HELPER
+   ========================================================================= */
 function loadTaskFiles(taskId, containerEl) {
   containerEl.innerHTML = '<span style="color:var(--text-muted);font-size:12px">Loading files...</span>';
 
@@ -1740,6 +1856,13 @@ function loadTaskFiles(taskId, containerEl) {
     });
 }
 
+/* =========================================================================
+   5) "OPEN IN MAP" (KML / KMZ VIEWER)
+   ========================================================================= */
+
+/* =========================================================================
+   FULLSCREEN SATELLITE & STREET MAP SYSTEM
+   ========================================================================= */
 var fullMap = null;
 var currentTileLayer = null;
 var fullMapLayerGroup = null;
@@ -1762,11 +1885,13 @@ function initFullscreenMap() {
     return;
   }
 
+  // Centered on Pakistan (North Region / Islamabad-Rawalpindi focus)
   fullMap = L.map('fullscreen-map', {
     zoomControl: true,
     attributionControl: false
   }).setView([33.6844, 73.0479], 12);
 
+  // Default to Satellite view
   currentTileLayer = L.tileLayer(MAP_TILES.satellite.url, MAP_TILES.satellite.options).addTo(fullMap);
   fullMapLayerGroup = L.layerGroup().addTo(fullMap);
 
@@ -1784,6 +1909,7 @@ function switchMapBaseLayer(layerKey) {
 
   currentTileLayer = L.tileLayer(MAP_TILES[layerKey].url, MAP_TILES[layerKey].options).addTo(fullMap);
 
+  // Update switcher buttons
   var satBtn = $('btn-layer-satellite');
   var strBtn = $('btn-layer-streets');
   if (satBtn && strBtn) {
@@ -1805,6 +1931,7 @@ function clearFullMapFeatures() {
 function openSelectedTaskInMap() {
   if (!selectedTask) return;
 
+  // Automatically close any overlay panel and display the full map
   switchNavTab('map');
 
   clearFullMapFeatures();
@@ -1879,6 +2006,7 @@ function renderKmlToFullMap(kmlText, filename) {
     var rawName = nameEl ? stripHtml(nameEl.textContent) : 'Feature';
     var rawDesc = descEl ? stripHtml(descEl.textContent) : '';
 
+    // Point
     var point = pm.getElementsByTagName('Point')[0];
     if (point) {
       var coords = parseCoordString(point.getElementsByTagName('coordinates')[0]);
@@ -1898,6 +2026,7 @@ function renderKmlToFullMap(kmlText, filename) {
       }
     }
 
+    // LineString
     var lineString = pm.getElementsByTagName('LineString')[0];
     if (lineString) {
       var lineCoords = parseCoordString(lineString.getElementsByTagName('coordinates')[0]);
@@ -1913,6 +2042,7 @@ function renderKmlToFullMap(kmlText, filename) {
       }
     }
 
+    // Polygon
     var polygon = pm.getElementsByTagName('Polygon')[0];
     if (polygon) {
       var outerBoundary = polygon.getElementsByTagName('outerBoundaryIs')[0];
@@ -1940,6 +2070,8 @@ function renderKmlToFullMap(kmlText, filename) {
   }
 }
 
+
+
 function renderPlacemark(pm) {
   var nameEl = pm.getElementsByTagName('name')[0];
   var descEl = pm.getElementsByTagName('description')[0];
@@ -1947,6 +2079,7 @@ function renderPlacemark(pm) {
   var rawName = nameEl ? stripHtml(nameEl.textContent) : 'Feature';
   var rawDesc = descEl ? stripHtml(descEl.textContent) : '';
 
+  // 1. Point
   var point = pm.getElementsByTagName('Point')[0];
   if (point) {
     var coords = parseCoordString(point.getElementsByTagName('coordinates')[0]);
@@ -1970,6 +2103,7 @@ function renderPlacemark(pm) {
     }
   }
 
+  // 2. LineString
   var lineString = pm.getElementsByTagName('LineString')[0];
   if (lineString) {
     var lineCoords = parseCoordString(lineString.getElementsByTagName('coordinates')[0]);
@@ -1989,6 +2123,7 @@ function renderPlacemark(pm) {
     }
   }
 
+  // 3. Polygon
   var polygon = pm.getElementsByTagName('Polygon')[0];
   if (polygon) {
     var outerBoundary = polygon.getElementsByTagName('outerBoundaryIs')[0];
@@ -2052,6 +2187,9 @@ function addFeatureToSideList(name, type, onClickFn) {
   list.appendChild(item);
 }
 
+/* =========================================================================
+   HELPERS & STYLES
+   ========================================================================= */
 function getStatusBadgeClass(st) {
   if (st === 'Pending') return 'status-pending';
   if (st === 'In Progress') return 'status-progress';
@@ -2069,6 +2207,7 @@ function getPriorityBadgeClass(pr) {
   return 'pri-medium';
 }
 
+// Auto-check session on page load
 window.addEventListener('DOMContentLoaded', function() {
   fetch('/api/tasks', { credentials: 'same-origin' })
     .then(function(res) {
