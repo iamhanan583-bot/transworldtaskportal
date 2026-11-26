@@ -77,7 +77,7 @@ hardcoded_catalog = [
     {"catalog_id": 30, "task_type": "Survey", "task_name": "HP Survey & Verification", "task_description": "Verify Homes Passed counts in new and existing areas and update the Network Loading Sheet."}
 ]
 
-# Supabase REST Bridge with Full Historical Tasks, File Support & Fallback
+
 supabase_bridge = f"""
 <script>
 (function() {{
@@ -93,11 +93,11 @@ supabase_bridge = f"""
     var HISTORICAL_TASKS = {json.dumps(historical_tasks)};
 
     var LOCAL_MEMBERS = [
-        {{ email: "fazal.admin@transworld.com", name: "Fazal ur Raheem", role: "Boss", region: "North", designation: "Admin & Operations Lead" }},
-        {{ email: "hasaan.north@transworld.com", name: "Hasaan", role: "Member", region: "North", designation: "GIS Field Engineer" }},
-        {{ email: "zain.north@transworld.com", name: "Zain", role: "Member", region: "North", designation: "GIS Field Engineer" }},
-        {{ email: "annas.north@transworld.com", name: "Annas Bashir", role: "Member", region: "North", designation: "Senior GIS Surveyor" }},
-        {{ email: "saboor.north@transworld.com", name: "Saboor Khan", role: "Member", region: "North", designation: "BOQ Estimator Lead" }}
+        {{ email: "fazal.admin@transworld.com", name: "Fazal ur Raheem", role: "Boss", region: "North" }},
+        {{ email: "hasaan.north@transworld.com", name: "Hasaan", role: "Member", region: "North" }},
+        {{ email: "zain.north@transworld.com", name: "Zain", role: "Member", region: "North" }},
+        {{ email: "annas.north@transworld.com", name: "Annas Bashir", role: "Member", region: "North" }},
+        {{ email: "saboor.north@transworld.com", name: "Saboor Khan", role: "Member", region: "North" }}
     ];
 
     var loggedInUser = null;
@@ -229,7 +229,7 @@ supabase_bridge = f"""
             .then(function(users) {{
                 if (Array.isArray(users) && users.length > 0) {{
                     var uObj = users[0];
-                    var userData = {{ email: uObj.email, name: uObj.name, role: uObj.role, region: uObj.region, designation: uObj.designation || '' }};
+                    var userData = {{ email: uObj.email, name: uObj.name, role: uObj.role, region: uObj.region }};
                     loggedInUser = userData;
                     try {{ sessionStorage.setItem('tw_logged_user', JSON.stringify(userData)); }} catch(e) {{}}
                     return new Response(JSON.stringify({{
@@ -380,7 +380,6 @@ supabase_bridge = f"""
                             email: m.email,
                             role: m.role,
                             region: m.region,
-                            designation: m.designation,
                             total_assigned: mTasks.length,
                             completed_tasks: mComp,
                             pending_tasks: mTasks.filter(function(t) {{ return t.status === 'Pending'; }}).length,
