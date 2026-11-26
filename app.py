@@ -129,6 +129,8 @@ supabase_bridge = f"""
             assigned_by: t.assigned_by || 'fazal.admin@transworld.com',
             deadline: t.deadline,
             deadline_str: t.deadline_str || dl.replace('T', ' ').slice(0, 16),
+            created_at: t.created_at || t.deadline || '',
+            created_at_str: (t.created_at || t.deadline || '').toString().replace('T', ' ').slice(0, 16),
             priority: t.priority || 'Medium',
             status: t.status || 'Pending',
             description: t.description || '',
@@ -360,19 +362,27 @@ supabase_bridge = f"""
 
         // 6. ANNUAL AUDIT REPORT API
         if (u.indexOf('/api/reports/annual') !== -1 && method === 'GET') {{
-            return fetchAllLiveTasks().then(function(tasks) {{
+            var yearMatch = u.match(/year=(\\d{{4}})/);
+            var targetYear = yearMatch ? yearMatch[1] : '';
+            return fetchAllLiveTasks().then(function(allT) {{
+                var tasks = targetYear ? allT.filter(function(t) {{
+                    var d = (t.deadline || t.created_at || '').toString();
+                    return d.indexOf(targetYear) === 0;
+                }}) : allT;
+                if (tasks.length === 0 && targetYear === '2026') tasks = allT;
+
                 var total = tasks.length;
                 var completed = tasks.filter(function(x) {{ return x.status === 'Accepted'; }}).length;
-                var pending = total - completed;
+                var pending = tasks.filter(function(x) {{ return x.status === 'Pending' || x.status === 'In Progress'; }}).length;
                 var rate = total > 0 ? ((completed / total) * 100).toFixed(1) : "0.0";
 
                 var report = {{
-                    year: 2026,
+                    year: targetYear || 2026,
                     total_tasks: total,
                     completed_tasks: completed,
                     pending_tasks: pending,
                     completion_rate_pct: rate,
-                    member_stats: LOCAL_MEMBERS.map(function(m) {{
+                    member_stats: LOCAL_MEMBERS.filter(function(m) {{ return m.role !== 'Boss'; }}).map(function(m) {{
                         var mTasks = tasks.filter(function(t) {{ return (t.assigned_to || '').toLowerCase() === m.email.toLowerCase(); }});
                         var mComp = mTasks.filter(function(t) {{ return t.status === 'Accepted'; }}).length;
                         return {{
@@ -384,6 +394,8 @@ supabase_bridge = f"""
                             completed_tasks: mComp,
                             pending_tasks: mTasks.filter(function(t) {{ return t.status === 'Pending'; }}).length,
                             in_progress_tasks: mTasks.filter(function(t) {{ return t.status === 'In Progress'; }}).length,
+                            submitted_tasks: mTasks.filter(function(t) {{ return t.status === 'Submitted for Review'; }}).length,
+                            rejected_tasks: mTasks.filter(function(t) {{ return t.status === 'Rejected'; }}).length,
                             completion_rate_pct: mTasks.length > 0 ? ((mComp / mTasks.length) * 100).toFixed(1) : "0.0"
                         }};
                     }}),
