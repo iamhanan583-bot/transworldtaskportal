@@ -429,7 +429,7 @@ table.task-table tbody tr.selected-row{background:rgba(43,139,230,0.12)}
             <h1 class="page-title">Assign New Task</h1>
             <div class="page-sub">Select task template and assign to North field member</div>
           </div>
-          <button class="panel-close-btn" onclick="switchNavTab('map')">✕ Close to Map</button>
+          <button class="panel-close-btn" onclick="switchNavTab('map')" title="Close to Map">✕</button>
         </div>
 
         <form class="form-card" id="form-create-task" onsubmit="handleCreateTask(event)">
@@ -518,7 +518,7 @@ table.task-table tbody tr.selected-row{background:rgba(43,139,230,0.12)}
             <h1 class="page-title">My Assigned Tasks</h1>
             <div class="page-sub">Monitor progress, inspect attached files, and review member submissions</div>
           </div>
-          <button class="panel-close-btn" onclick="switchNavTab('map')">✕ Close to Map</button>
+          <button class="panel-close-btn" onclick="switchNavTab('map')" title="Close to Map">✕</button>
         </div>
 
         <!-- Summary Metric Cards -->
@@ -616,8 +616,9 @@ table.task-table tbody tr.selected-row{background:rgba(43,139,230,0.12)}
               <div id="admin-det-meta" style="font-size:12px;color:var(--text-muted)"></div>
             </div>
             <div style="display:flex;gap:8px;align-items:center">
-              <button class="btn-ghost" id="btn-admin-discard" style="display:none" onclick="discardSelectedTask()">Discard from List</button>
+              <button class="btn-ghost" id="btn-admin-discard" style="display:none" onclick="discardSelectedTask()">Discard</button>
               <button class="btn-pri" id="btn-admin-open-map" onclick="openSelectedTaskInMap()">Open in Map</button>
+              <button class="panel-close-btn" onclick="closeAdminDetailsPanel()" title="Close Task Details">✕</button>
             </div>
           </div>
 
@@ -666,7 +667,7 @@ table.task-table tbody tr.selected-row{background:rgba(43,139,230,0.12)}
             <h1 class="page-title">Team Monthly Breakdown</h1>
             <div class="page-sub">Select a team member and month to inspect assigned tasks and completion details</div>
           </div>
-          <button class="panel-close-btn" onclick="switchNavTab('map')">✕ Close to Map</button>
+          <button class="panel-close-btn" onclick="switchNavTab('map')" title="Close to Map">✕</button>
         </div>
 
         <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:16px">
@@ -742,7 +743,7 @@ table.task-table tbody tr.selected-row{background:rgba(43,139,230,0.12)}
               <option value="2024">Year 2024</option>
             </select>
             <button class="btn-sec" onclick="exportAnnualReportCSV()">Export CSV</button>
-            <button class="panel-close-btn" onclick="switchNavTab('map')">✕ Close to Map</button>
+            <button class="panel-close-btn" onclick="switchNavTab('map')" title="Close to Map">✕</button>
           </div>
         </div>
 
@@ -821,7 +822,7 @@ table.task-table tbody tr.selected-row{background:rgba(43,139,230,0.12)}
             <h1 class="page-title">My Tasks</h1>
             <div class="page-sub">View your assigned field work, download KML/KMZ routes, and submit findings</div>
           </div>
-          <button class="panel-close-btn" onclick="switchNavTab('map')">✕ Close to Map</button>
+          <button class="panel-close-btn" onclick="switchNavTab('map')" title="Close to Map">✕</button>
         </div>
 
         <div class="table-wrap">
@@ -850,7 +851,10 @@ table.task-table tbody tr.selected-row{background:rgba(43,139,230,0.12)}
               <h2 id="mem-det-title" style="margin:0 0 4px 0;font-size:16px;color:#fff">Task Details</h2>
               <div id="mem-det-meta" style="font-size:12px;color:var(--text-muted)"></div>
             </div>
-            <button class="btn-pri" id="btn-mem-open-map" onclick="openSelectedTaskInMap()">Open in Map</button>
+            <div style="display:flex;gap:8px;align-items:center">
+              <button class="btn-pri" id="btn-mem-open-map" onclick="openSelectedTaskInMap()">Open in Map</button>
+              <button class="panel-close-btn" onclick="closeMemberDetailsPanel()" title="Close Task Details">✕</button>
+            </div>
           </div>
 
           <div class="panel-grid">
@@ -1535,6 +1539,18 @@ function getTaskMonth(t) {
   var d = (t.deadline || t.deadline_str || t.created_at || '').toString();
   var m = d.match(/^\d{4}-(\d{2})/);
   return m ? m[1] : '';
+}
+
+function closeAdminDetailsPanel() {
+  selectedTask = null;
+  $('admin-details-panel').classList.remove('open');
+  renderAdminTasksTable();
+}
+
+function closeMemberDetailsPanel() {
+  selectedTask = null;
+  $('member-details-panel').classList.remove('open');
+  renderMemberTasksTable();
 }
 
 function discardSelectedTask() {
