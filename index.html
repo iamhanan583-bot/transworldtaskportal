@@ -194,6 +194,19 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator{
   cursor:pointer;
   opacity:0.95;
 }
+.member-pills{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.member-pill{
+  padding:7px 14px;border-radius:999px;border:1px solid var(--border);
+  background:var(--bg-card);color:var(--text-muted);font-size:12.5px;font-weight:600;
+  cursor:pointer;transition:all 0.15s;
+}
+.member-pill:hover{border-color:var(--blue);color:#fff}
+.member-pill.active{background:var(--blue);border-color:var(--blue);color:#fff}
+.btn-ghost{
+  padding:6px 12px;border-radius:6px;border:1px solid var(--border);background:transparent;
+  color:var(--text-muted);font-size:12px;font-weight:600;cursor:pointer;transition:all 0.15s;
+}
+.btn-ghost:hover{border-color:#ff7b72;color:#ff7b72;background:rgba(248,81,73,0.08)}
 
 /* FILE ATTACHMENT BOX */
 .attach-box{
@@ -375,6 +388,9 @@ table.task-table tbody tr.selected-row{background:rgba(43,139,230,0.12)}
         <button class="nav-btn" id="nav-btn-admin-tasks" onclick="switchNavTab('admin-tasks')">
           <span>My Tasks / Assigned</span>
         </button>
+        <button class="nav-btn" id="nav-btn-team-monthly" onclick="switchNavTab('team-monthly')">
+          <span>Team Monthly View</span>
+        </button>
         <button class="nav-btn" id="nav-btn-annual-report" onclick="switchNavTab('annual-report')">
           <span>Annual Audit Report</span>
         </button>
@@ -530,22 +546,45 @@ table.task-table tbody tr.selected-row{background:rgba(43,139,230,0.12)}
         </div>
 
         <!-- Filters Row -->
-        <div class="table-filters">
-          <select id="filt-admin-region" onchange="renderAdminTasksTable()">
-            <option value="All">All Regions</option>
-            <option value="North" selected>North</option>
-          </select>
-          <select id="filt-admin-member" onchange="renderAdminTasksTable()">
-            <option value="All">All Members</option>
-          </select>
-          <select id="filt-admin-status" onchange="renderAdminTasksTable()">
-            <option value="All">All Statuses</option>
-            <option value="Pending">Pending</option>
-            <option value="In Progress">In Progress</option>
-            <option value="Submitted for Review">Submitted for Review</option>
-            <option value="Accepted">Accepted</option>
-            <option value="Rejected">Rejected</option>
-          </select>
+        <div class="table-filters" style="justify-content:space-between;align-items:center">
+          <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+            <select id="filt-admin-region" onchange="renderAdminTasksTable()">
+              <option value="All">All Regions</option>
+              <option value="North" selected>North</option>
+            </select>
+            <select id="filt-admin-member" onchange="renderAdminTasksTable()">
+              <option value="All">All Members</option>
+            </select>
+            <select id="filt-admin-status" onchange="renderAdminTasksTable()">
+              <option value="All">All Statuses</option>
+              <option value="Pending">Pending</option>
+              <option value="In Progress">In Progress</option>
+              <option value="Submitted for Review">Submitted for Review</option>
+              <option value="Accepted">Accepted</option>
+              <option value="Rejected">Rejected</option>
+            </select>
+            <select id="filt-admin-month" onchange="renderAdminTasksTable()">
+              <option value="All">All Months</option>
+              <option value="01">January</option>
+              <option value="02">February</option>
+              <option value="03">March</option>
+              <option value="04">April</option>
+              <option value="05">May</option>
+              <option value="06">June</option>
+              <option value="07">July</option>
+              <option value="08">August</option>
+              <option value="09">September</option>
+              <option value="10">October</option>
+              <option value="11">November</option>
+              <option value="12">December</option>
+            </select>
+          </div>
+          <div style="display:flex;gap:10px;align-items:center">
+            <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--text-muted);cursor:pointer;user-select:none">
+              <input type="checkbox" id="chk-show-archived" onchange="renderAdminTasksTable()"> Show Discarded
+            </label>
+            <button type="button" class="btn-ghost" onclick="discardCompletedAndRejected()" title="Remove Completed/Rejected tasks from this view while keeping them in Excel/Audit reports">Clear Completed / Rejected</button>
+          </div>
         </div>
 
         <!-- Tasks Table -->
@@ -571,12 +610,15 @@ table.task-table tbody tr.selected-row{background:rgba(43,139,230,0.12)}
 
         <!-- Task Details & Review Box (Below Table) -->
         <div class="details-panel" id="admin-details-panel">
-          <div style="display:flex;justify-content:space-between;align-items:flex-start">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px">
             <div>
               <h2 id="admin-det-title" style="margin:0 0 4px 0;font-size:16px;color:#fff">Task Details</h2>
               <div id="admin-det-meta" style="font-size:12px;color:var(--text-muted)"></div>
             </div>
-            <button class="btn-pri" id="btn-admin-open-map" onclick="openSelectedTaskInMap()">Open in Map</button>
+            <div style="display:flex;gap:8px;align-items:center">
+              <button class="btn-ghost" id="btn-admin-discard" style="display:none" onclick="discardSelectedTask()">Discard from List</button>
+              <button class="btn-pri" id="btn-admin-open-map" onclick="openSelectedTaskInMap()">Open in Map</button>
+            </div>
           </div>
 
           <div class="panel-grid">
@@ -612,6 +654,75 @@ table.task-table tbody tr.selected-row{background:rgba(43,139,230,0.12)}
               <button class="btn-red" onclick="submitAdminDecision('Rejected')">Reject & Request Redo</button>
             </div>
           </div>
+        </div>
+      </div>
+
+      <!-- ============================================================= -->
+      <!-- PANE 2B: ADMIN - TEAM MONTHLY BREAKDOWN -->
+      <!-- ============================================================= -->
+      <div class="pane-view" id="view-team-monthly">
+        <div class="page-header">
+          <div>
+            <h1 class="page-title">Team Monthly Breakdown</h1>
+            <div class="page-sub">Select a team member and month to inspect assigned tasks and completion details</div>
+          </div>
+          <button class="panel-close-btn" onclick="switchNavTab('map')">✕ Close to Map</button>
+        </div>
+
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:16px">
+          <div class="member-pills" id="team-monthly-pills"></div>
+          <select id="team-monthly-month" onchange="renderTeamMonthlyView()" style="padding:7px 12px;background:var(--bg-card);border:1px solid var(--border);border-radius:6px;color:#fff;font-size:13px">
+            <option value="All">All Months</option>
+            <option value="01">January</option>
+            <option value="02">February</option>
+            <option value="03">March</option>
+            <option value="04">April</option>
+            <option value="05">May</option>
+            <option value="06">June</option>
+            <option value="07">July</option>
+            <option value="08">August</option>
+            <option value="09">September</option>
+            <option value="10">October</option>
+            <option value="11">November</option>
+            <option value="12">December</option>
+          </select>
+        </div>
+
+        <div class="summary-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:16px">
+          <div class="metric-card">
+            <div class="metric-label">Total Assigned</div>
+            <div class="metric-val" id="tm-total">0</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">Completed (Accepted)</div>
+            <div class="metric-val accepted" id="tm-completed">0</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">Active (Pending / Progress)</div>
+            <div class="metric-val progress" id="tm-active">0</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">Rejected</div>
+            <div class="metric-val rejected" id="tm-rejected">0</div>
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <table class="task-table">
+            <thead>
+              <tr>
+                <th>Code</th>
+                <th>Title</th>
+                <th>Type</th>
+                <th>Area</th>
+                <th>Priority</th>
+                <th>Status</th>
+                <th>Deadline</th>
+                <th>Files</th>
+              </tr>
+            </thead>
+            <tbody id="team-monthly-tbody"></tbody>
+          </table>
         </div>
       </div>
 
@@ -1142,6 +1253,10 @@ function switchNavTab(tabId) {
     $('view-admin-tasks').classList.add('active');
     if ($('nav-btn-admin-tasks')) $('nav-btn-admin-tasks').classList.add('active');
     fetchTasksData();
+  } else if (tabId === 'team-monthly') {
+    $('view-team-monthly').classList.add('active');
+    if ($('nav-btn-team-monthly')) $('nav-btn-team-monthly').classList.add('active');
+    fetchTasksData();
   } else if (tabId === 'annual-report') {
     $('view-annual-report').classList.add('active');
     if ($('nav-btn-annual-report')) $('nav-btn-annual-report').classList.add('active');
@@ -1174,6 +1289,9 @@ function fetchTasksData() {
       allTasks = Array.isArray(data) ? data : [];
       if (currentUser && currentUser.role === 'Boss') {
         renderAdminTasksTable();
+        if ($('view-team-monthly') && $('view-team-monthly').classList.contains('active')) {
+          renderTeamMonthlyView();
+        }
       } else {
         renderMemberTasksTable();
       }
@@ -1403,6 +1521,48 @@ function filterByCardStatus(st) {
   renderAdminTasksTable();
 }
 
+var archivedTaskIds = new Set();
+try {
+  var savedArch = JSON.parse(localStorage.getItem('tw_archived_task_ids') || '[]');
+  if (Array.isArray(savedArch)) savedArch.forEach(function(id) { archivedTaskIds.add(id); });
+} catch(e) {}
+
+function saveArchivedIds() {
+  try { localStorage.setItem('tw_archived_task_ids', JSON.stringify(Array.from(archivedTaskIds))); } catch(e) {}
+}
+
+function getTaskMonth(t) {
+  var d = (t.deadline || t.deadline_str || t.created_at || '').toString();
+  var m = d.match(/^\d{4}-(\d{2})/);
+  return m ? m[1] : '';
+}
+
+function discardSelectedTask() {
+  if (!selectedTask) return;
+  if (!confirm('Discard "' + selectedTask.task_code + '" from this active list? (It will remain in Annual Audit / Excel reports.)')) return;
+  archivedTaskIds.add(selectedTask.task_id);
+  saveArchivedIds();
+  selectedTask = null;
+  $('admin-details-panel').classList.remove('open');
+  renderAdminTasksTable();
+}
+
+function discardCompletedAndRejected() {
+  var targets = allTasks.filter(function(t) {
+    return !archivedTaskIds.has(t.task_id) && (t.status === 'Accepted' || t.status === 'Rejected');
+  });
+  if (targets.length === 0) {
+    alert('No completed or rejected tasks to clear from the active list.');
+    return;
+  }
+  if (!confirm('Clear ' + targets.length + ' Completed / Rejected task(s) from this list?\n\nThey will still be available in Annual Audit Report and CSV/Excel exports.')) return;
+  targets.forEach(function(t) { archivedTaskIds.add(t.task_id); });
+  saveArchivedIds();
+  selectedTask = null;
+  $('admin-details-panel').classList.remove('open');
+  renderAdminTasksTable();
+}
+
 function renderAdminTasksTable() {
   var tbody = $('admin-table-body');
   if (!tbody) return;
@@ -1410,10 +1570,14 @@ function renderAdminTasksTable() {
   var regFilter = $('filt-admin-region').value;
   var memberFilter = $('filt-admin-member').value;
   var statusFilter = $('filt-admin-status').value;
+  var monthFilter = $('filt-admin-month') ? $('filt-admin-month').value : 'All';
+  var showArchived = $('chk-show-archived') ? $('chk-show-archived').checked : false;
 
-  // Counts
+  // Counts (for visible active or archived scope)
   var pCount = 0, prCount = 0, rCount = 0, aCount = 0, rejCount = 0;
   allTasks.forEach(function(t) {
+    if (!showArchived && archivedTaskIds.has(t.task_id)) return;
+    if (monthFilter !== 'All' && getTaskMonth(t) !== monthFilter) return;
     if (t.status === 'Pending') pCount++;
     else if (t.status === 'In Progress') prCount++;
     else if (t.status === 'Submitted for Review') rCount++;
@@ -1427,7 +1591,7 @@ function renderAdminTasksTable() {
   $('count-rejected').textContent = rejCount;
 
   // Update card active styles
-  var cards = document.querySelectorAll('.metric-card');
+  var cards = document.querySelectorAll('#view-admin-tasks .metric-card');
   cards.forEach(function(c) { c.classList.remove('active-filter'); });
   if (statusFilter !== 'All') {
     var cardIdx = {'Pending':0, 'In Progress':1, 'Submitted for Review':2, 'Accepted':3, 'Rejected':4}[statusFilter];
@@ -1436,9 +1600,11 @@ function renderAdminTasksTable() {
 
   // Filter list
   var filtered = allTasks.filter(function(t) {
+    if (!showArchived && archivedTaskIds.has(t.task_id)) return false;
     if (regFilter !== 'All' && t.region !== regFilter) return false;
     if (memberFilter !== 'All' && t.assigned_to !== memberFilter) return false;
     if (statusFilter !== 'All' && t.status !== statusFilter) return false;
+    if (monthFilter !== 'All' && getTaskMonth(t) !== monthFilter) return false;
     return true;
   });
 
@@ -1484,6 +1650,13 @@ function selectAdminTask(taskId) {
 
   // Load attached files
   loadTaskFiles(t.task_id, $('admin-det-files'));
+
+  // Discard button (only for Completed/Rejected tasks)
+  var btnDiscard = $('btn-admin-discard');
+  if (btnDiscard) {
+    var canDiscard = (t.status === 'Accepted' || t.status === 'Rejected') && !archivedTaskIds.has(t.task_id);
+    btnDiscard.style.display = canDiscard ? 'inline-block' : 'none';
+  }
 
   // Review section
   var revSec = $('admin-review-section');
@@ -1576,6 +1749,72 @@ function handleAdminReplaceFile(event) {
     });
   };
   reader.readAsDataURL(file);
+}
+
+/* =========================================================================
+   TEAM MONTHLY BREAKDOWN
+   ========================================================================= */
+var selectedTeamMonthlyEmail = '';
+
+function selectTeamMonthlyMember(email) {
+  selectedTeamMonthlyEmail = email;
+  renderTeamMonthlyView();
+}
+
+function renderTeamMonthlyView() {
+  var pillsEl = $('team-monthly-pills');
+  var tbody = $('team-monthly-tbody');
+  if (!pillsEl || !tbody) return;
+
+  var members = allTeams.filter(function(m) { return m.role !== 'Boss'; });
+  if (!selectedTeamMonthlyEmail && members.length > 0) {
+    selectedTeamMonthlyEmail = members[0].email;
+  }
+
+  pillsEl.innerHTML = members.map(function(m) {
+    var activeCls = (m.email.toLowerCase() === (selectedTeamMonthlyEmail || '').toLowerCase()) ? ' active' : '';
+    return '<button type="button" class="member-pill' + activeCls + '" onclick="selectTeamMonthlyMember(\'' + esc(m.email) + '\')">' + esc(m.name) + '</button>';
+  }).join('');
+
+  var monthVal = $('team-monthly-month') ? $('team-monthly-month').value : 'All';
+  var memberTasks = allTasks.filter(function(t) {
+    if ((t.assigned_to || '').toLowerCase() !== (selectedTeamMonthlyEmail || '').toLowerCase()) return false;
+    if (monthVal !== 'All' && getTaskMonth(t) !== monthVal) return false;
+    return true;
+  });
+
+  var total = memberTasks.length;
+  var comp = memberTasks.filter(function(t) { return t.status === 'Accepted'; }).length;
+  var active = memberTasks.filter(function(t) { return t.status === 'Pending' || t.status === 'In Progress' || t.status === 'Submitted for Review'; }).length;
+  var rej = memberTasks.filter(function(t) { return t.status === 'Rejected'; }).length;
+
+  $('tm-total').textContent = total;
+  $('tm-completed').textContent = comp;
+  $('tm-active').textContent = active;
+  $('tm-rejected').textContent = rej;
+
+  if (memberTasks.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:24px;color:var(--text-muted)">No tasks assigned to this member for the selected month.</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = memberTasks.map(function(t) {
+    var statusCls = getStatusBadgeClass(t.status);
+    var priCls = getPriorityBadgeClass(t.priority);
+    var fileBadge = t.file_count > 0
+      ? '<span style="color:var(--blue);font-weight:600">' + t.file_count + ' file' + (t.file_count > 1 ? 's' : '') + '</span>'
+      : '<span style="color:var(--text-muted)">0</span>';
+    return '<tr onclick="switchNavTab(\'admin-tasks\');setTimeout(function(){selectAdminTask(' + t.task_id + ');},150)">' +
+             '<td style="font-family:Consolas,monospace;font-weight:700;color:var(--blue)">' + esc(t.task_code) + '</td>' +
+             '<td style="font-weight:600">' + esc(t.title) + '</td>' +
+             '<td>' + esc(t.task_type) + '</td>' +
+             '<td>' + esc(t.area_name || 'N/A') + '</td>' +
+             '<td><span class="badge-priority ' + priCls + '">' + esc(t.priority) + '</span></td>' +
+             '<td><span class="badge-status ' + statusCls + '">' + esc(t.status) + '</span></td>' +
+             '<td style="color:var(--text-muted)">' + esc(t.deadline_str) + '</td>' +
+             '<td style="text-align:center">' + fileBadge + '</td>' +
+           '</tr>';
+  }).join('');
 }
 
 /* =========================================================================
