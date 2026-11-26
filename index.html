@@ -585,7 +585,7 @@ table.task-table tbody tr.selected-row{background:rgba(43,139,230,0.12)}
             <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--text-muted);cursor:pointer;user-select:none">
               <input type="checkbox" id="chk-show-archived" onchange="renderAdminTasksTable()"> Show Discarded
             </label>
-            <button type="button" class="btn-ghost" onclick="discardCompletedAndRejected()" title="Remove Completed/Rejected tasks from this view while keeping them in Excel/Audit reports">Clear Completed / Rejected</button>
+            <button type="button" class="btn-ghost" onclick="discardAcceptedTasks()" title="Remove Accepted tasks from this view while keeping them in Excel/Audit reports">Clear Accepted</button>
           </div>
         </div>
 
@@ -827,6 +827,15 @@ table.task-table tbody tr.selected-row{background:rgba(43,139,230,0.12)}
           <button class="panel-close-btn" onclick="switchNavTab('map')" title="Close to Map">✕</button>
         </div>
 
+        <div class="table-filters" style="justify-content:flex-end;align-items:center;margin-bottom:10px">
+          <div style="display:flex;gap:10px;align-items:center">
+            <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--text-muted);cursor:pointer;user-select:none">
+              <input type="checkbox" id="chk-mem-show-archived" onchange="renderMemberTasksTable()"> Show Discarded
+            </label>
+            <button type="button" class="btn-ghost" onclick="discardMemberAcceptedTasks()" title="Remove Accepted tasks from your active list">Clear Accepted</button>
+          </div>
+        </div>
+
         <div class="table-wrap">
           <table class="task-table" id="member-task-table">
             <thead>
@@ -854,6 +863,7 @@ table.task-table tbody tr.selected-row{background:rgba(43,139,230,0.12)}
               <div id="mem-det-meta" style="font-size:12px;color:var(--text-muted)"></div>
             </div>
             <div style="display:flex;gap:8px;align-items:center">
+              <button class="btn-ghost" id="btn-mem-discard" style="display:none" onclick="discardMemberSelectedTask()">Discard</button>
               <button class="btn-pri" id="btn-mem-open-map" onclick="openSelectedTaskInMap()">Open in Map</button>
               <button class="panel-close-btn" onclick="closeMemberDetailsPanel()" title="Close Task Details">✕</button>
             </div>
@@ -1565,15 +1575,15 @@ function discardSelectedTask() {
   renderAdminTasksTable();
 }
 
-function discardCompletedAndRejected() {
+function discardAcceptedTasks() {
   var targets = allTasks.filter(function(t) {
-    return !archivedTaskIds.has(t.task_id) && (t.status === 'Accepted' || t.status === 'Rejected');
+    return !archivedTaskIds.has(t.task_id) && t.status === 'Accepted';
   });
   if (targets.length === 0) {
-    alert('No completed or rejected tasks to clear from the active list.');
+    alert('No accepted tasks to clear from the active list.');
     return;
   }
-  if (!confirm('Clear ' + targets.length + ' Completed / Rejected task(s) from this list?\n\nThey will still be available in Annual Audit Report and CSV/Excel exports.')) return;
+  if (!confirm('Clear ' + targets.length + ' Accepted task(s) from this list?\n\nThey will still be available in Annual Audit Report and CSV/Excel exports.')) return;
   targets.forEach(function(t) { archivedTaskIds.add(t.task_id); });
   saveArchivedIds();
   selectedTask = null;
@@ -1671,10 +1681,10 @@ function selectAdminTask(taskId) {
   // Load attached files
   loadTaskFiles(t.task_id, $('admin-det-files'));
 
-  // Discard button (only for Completed/Rejected tasks)
+  // Discard button (only for Accepted tasks)
   var btnDiscard = $('btn-admin-discard');
   if (btnDiscard) {
-    var canDiscard = (t.status === 'Accepted' || t.status === 'Rejected') && !archivedTaskIds.has(t.task_id);
+    var canDiscard = (t.status === 'Accepted') && !archivedTaskIds.has(t.task_id);
     btnDiscard.style.display = canDiscard ? 'inline-block' : 'none';
   }
 
@@ -1978,14 +1988,70 @@ function exportAnnualReportCSV() {
 /* =========================================================================
    4) FIELD MEMBER SECTION
    ========================================================================= */
+function getMemberArchiveKey() {
+  var email = (currentUser && currentUser.email) ? currentUser.email.toLowerCase() : 'guest';
+  return 'tw_member_archived_' + email;
+}
+
+function getMemberArchivedSet() {
+  var s = new Set();
+  try {
+    var arr = JSON.parse(localStorage.getItem(getMemberArchiveKey()) || '[]');
+    if (Array.isArray(arr)) arr.forEach(function(id) { s.add(id); });
+  } catch(e) {}
+  return s;
+}
+
+function saveMemberArchivedSet(s) {
+  try { localStorage.setItem(getMemberArchiveKey(), JSON.stringify(Array.from(s))); } catch(e) {}
+}
+
+function discardMemberSelectedTask() {
+  if (!selectedTask || selectedTask.status !== 'Accepted') return;
+  if (!confirm('Discard "' + selectedTask.task_code + '" from your active list?')) return;
+  var s = getMemberArchivedSet();
+  s.add(selectedTask.task_id);
+  saveMemberArchivedSet(s);
+  selectedTask = null;
+  $('member-details-panel').classList.remove('open');
+  renderMemberTasksTable();
+}
+
+function discardMemberAcceptedTasks() {
+  var s = getMemberArchivedSet();
+  var myEmail = (currentUser && currentUser.email) ? currentUser.email.toLowerCase() : '';
+  var targets = allTasks.filter(function(t) {
+    if (myEmail && (t.assigned_to || '').toLowerCase() !== myEmail) return false;
+    return !s.has(t.task_id) && t.status === 'Accepted';
+  });
+  if (targets.length === 0) {
+    alert('No accepted tasks to clear from your active list.');
+    return;
+  }
+  if (!confirm('Clear ' + targets.length + ' Accepted task(s) from your list?')) return;
+  targets.forEach(function(t) { s.add(t.task_id); });
+  saveMemberArchivedSet(s);
+  selectedTask = null;
+  $('member-details-panel').classList.remove('open');
+  renderMemberTasksTable();
+}
+
 function renderMemberTasksTable() {
   var tbody = $('member-table-body');
   if (!tbody) return;
 
   var myEmail = (currentUser && currentUser.email) ? currentUser.email.toLowerCase() : '';
+  var showMemArchived = $('chk-mem-show-archived') ? $('chk-mem-show-archived').checked : false;
+  var memArch = getMemberArchivedSet();
+
   var myTasks = (currentUser && currentUser.role !== 'Boss' && myEmail)
     ? allTasks.filter(function(t) { return (t.assigned_to || '').toLowerCase() === myEmail; })
     : allTasks;
+
+  myTasks = myTasks.filter(function(t) {
+    if (!showMemArchived && memArch.has(t.task_id)) return false;
+    return true;
+  });
 
   if (myTasks.length === 0) {
     tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:30px;color:var(--text-muted);font-size:14px">No tasks assigned to you yet</td></tr>';
@@ -2051,6 +2117,13 @@ function selectMemberTask(taskId) {
   }
 
   loadTaskFiles(t.task_id, $('mem-det-files'));
+
+  var btnMemDiscard = $('btn-mem-discard');
+  if (btnMemDiscard) {
+    var memArch = getMemberArchivedSet();
+    var canMemDiscard = (t.status === 'Accepted') && !memArch.has(t.task_id);
+    btnMemDiscard.style.display = canMemDiscard ? 'inline-block' : 'none';
+  }
 
   var btnStart = $('btn-start-task');
   var btnSubmit = $('btn-open-submit');
