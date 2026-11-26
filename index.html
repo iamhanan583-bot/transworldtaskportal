@@ -549,8 +549,10 @@ table.task-table tbody tr.selected-row{background:rgba(43,139,230,0.12)}
         <div class="table-filters" style="justify-content:space-between;align-items:center">
           <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
             <select id="filt-admin-region" onchange="renderAdminTasksTable()">
-              <option value="All">All Regions</option>
-              <option value="North" selected>North</option>
+              <option value="All" selected>All Regions</option>
+              <option value="North">North</option>
+              <option value="Central">Central</option>
+              <option value="South">South</option>
             </select>
             <select id="filt-admin-member" onchange="renderAdminTasksTable()">
               <option value="All">All Members</option>
@@ -1589,10 +1591,12 @@ function renderAdminTasksTable() {
   var monthFilter = $('filt-admin-month') ? $('filt-admin-month').value : 'All';
   var showArchived = $('chk-show-archived') ? $('chk-show-archived').checked : false;
 
-  // Counts (for visible active or archived scope)
+  // Counts (match active Region, Member, Month, and Discarded state so cards always match table)
   var pCount = 0, prCount = 0, rCount = 0, aCount = 0, rejCount = 0;
   allTasks.forEach(function(t) {
     if (!showArchived && archivedTaskIds.has(t.task_id)) return;
+    if (regFilter !== 'All' && t.region !== regFilter) return;
+    if (memberFilter !== 'All' && t.assigned_to !== memberFilter) return;
     if (monthFilter !== 'All' && getTaskMonth(t) !== monthFilter) return;
     if (t.status === 'Pending') pCount++;
     else if (t.status === 'In Progress') prCount++;
@@ -1702,7 +1706,9 @@ function submitAdminDecision(decision) {
   })
   .then(function(r) { return r.json(); })
   .then(function(res) {
+    selectedTask.status = decision;
     alert('Task status updated: ' + decision);
+    closeAdminDetailsPanel();
     fetchTasksData();
   })
   .catch(function(e) { alert('Error recording decision: ' + e); });
@@ -1777,6 +1783,18 @@ function selectTeamMonthlyMember(email) {
   renderTeamMonthlyView();
 }
 
+function openTaskFromTeamMonthly(taskId) {
+  if ($('filt-admin-region')) $('filt-admin-region').value = 'All';
+  if ($('filt-admin-member')) $('filt-admin-member').value = 'All';
+  if ($('filt-admin-status')) $('filt-admin-status').value = 'All';
+  if ($('filt-admin-month')) $('filt-admin-month').value = 'All';
+  if (archivedTaskIds.has(taskId) && $('chk-show-archived')) {
+    $('chk-show-archived').checked = true;
+  }
+  switchNavTab('admin-tasks');
+  setTimeout(function() { selectAdminTask(taskId); }, 250);
+}
+
 function renderTeamMonthlyView() {
   var pillsEl = $('team-monthly-pills');
   var tbody = $('team-monthly-tbody');
@@ -1820,7 +1838,7 @@ function renderTeamMonthlyView() {
     var fileBadge = t.file_count > 0
       ? '<span style="color:var(--blue);font-weight:600">' + t.file_count + ' file' + (t.file_count > 1 ? 's' : '') + '</span>'
       : '<span style="color:var(--text-muted)">0</span>';
-    return '<tr onclick="switchNavTab(\'admin-tasks\');setTimeout(function(){selectAdminTask(' + t.task_id + ');},150)">' +
+    return '<tr onclick="openTaskFromTeamMonthly(' + t.task_id + ')">' +
              '<td style="font-family:Consolas,monospace;font-weight:700;color:var(--blue)">' + esc(t.task_code) + '</td>' +
              '<td style="font-weight:600">' + esc(t.title) + '</td>' +
              '<td>' + esc(t.task_type) + '</td>' +
