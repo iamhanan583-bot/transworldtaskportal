@@ -496,6 +496,56 @@ supabase_bridge = f"""
             }});
         }}
 
+        // 10. REPLACE / UPDATE ATTACHED FILE (Deletes old files for task_id & saves new file)
+        if (u.indexOf('/api/tasks/replace-file') !== -1 && method === 'POST') {{
+            var payload = JSON.parse(opts.body || '{{}}');
+            var tid = payload.task_id;
+            var files = Array.isArray(payload.files) ? payload.files : [];
+            if (!tid || files.length === 0) {{
+                return Promise.resolve(new Response(JSON.stringify({{ error: 'Missing task_id or file' }}), {{ status: 400, headers: {{ 'Content-Type': 'application/json' }} }}));
+            }}
+
+            return originalFetch(SB_URL + "/task_files?task_id=eq." + tid, {{
+                method: "DELETE",
+                headers: SB_HEADERS
+            }})
+            .then(function(delRes) {{
+                if (!delRes.ok) {{
+                    return delRes.json().then(function(err) {{
+                        throw new Error((err && err.message) || ('Delete failed: HTTP ' + delRes.status));
+                    }});
+                }}
+                var filePromises = files.map(function(f) {{
+                    var ext = (f.filename || '').split('.').pop().toLowerCase() || 'bin';
+                    var fileRow = {{
+                        task_id: tid,
+                        filename: f.filename,
+                        file_type: ext,
+                        size_bytes: f.size_bytes || f.size || 0,
+                        content: f.content_base64 ? base64ToHex(f.content_base64) : null,
+                        uploaded_by: (loggedInUser && loggedInUser.email) || 'fazal.admin@transworld.com'
+                    }};
+                    return originalFetch(SB_URL + "/task_files", {{
+                        method: "POST",
+                        headers: SB_HEADERS,
+                        body: JSON.stringify(fileRow)
+                    }}).then(function(r) {{
+                        if (!r.ok) {{
+                            return r.json().then(function(e) {{ throw new Error((e && e.message) || 'Insert failed'); }});
+                        }}
+                        return r.json();
+                    }});
+                }});
+                return Promise.all(filePromises);
+            }})
+            .then(function(inserted) {{
+                return new Response(JSON.stringify({{ status: 'replaced', files: inserted }}), {{ status: 200, headers: {{ 'Content-Type': 'application/json' }} }});
+            }})
+            .catch(function(err) {{
+                return new Response(JSON.stringify({{ error: err.message || 'Replace failed' }}), {{ status: 400, headers: {{ 'Content-Type': 'application/json' }} }});
+            }});
+        }}
+
         return originalFetch(url, options);
     }};
 }})();
