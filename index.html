@@ -187,6 +187,13 @@ html,body{height:100%;margin:0;font-family:"Segoe UI",Roboto,Arial,sans-serif;fo
 .form-group input:focus, .form-group select:focus, .form-group textarea:focus{
   border-color:var(--blue);background:#161b22;
 }
+input[type="datetime-local"]{
+  color-scheme:dark;
+}
+input[type="datetime-local"]::-webkit-calendar-picker-indicator{
+  cursor:pointer;
+  opacity:0.95;
+}
 
 /* FILE ATTACHMENT BOX */
 .attach-box{
@@ -1255,7 +1262,7 @@ function populateAssigneeDropdown() {
   });
 
   sel.innerHTML = '<option value="">-- Select Member --</option>' + members.map(function(m) {
-    return '<option value="' + esc(m.email) + '">' + esc(m.name) + ' (' + esc(m.designation || 'North Field') + ')</option>';
+    return '<option value="' + esc(m.email) + '">' + esc(m.name) + '</option>';
   }).join('');
 }
 
