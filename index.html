@@ -587,6 +587,10 @@ table.task-table tbody tr.selected-row{background:rgba(43,139,230,0.12)}
             <div class="detail-item">
               <label>Attached Files</label>
               <div id="admin-det-files" class="files-chips"></div>
+              <div style="margin-top:10px">
+                <input type="file" id="admin-replace-file-input" style="display:none" onchange="handleAdminReplaceFile(event)">
+                <button type="button" class="btn-sec" id="btn-admin-replace-file" style="padding:6px 12px;font-size:12px" onclick="$('admin-replace-file-input').click()">Update / Replace File</button>
+              </div>
             </div>
           </div>
 
@@ -1137,7 +1141,7 @@ function switchNavTab(tabId) {
   } else if (tabId === 'admin-tasks') {
     $('view-admin-tasks').classList.add('active');
     if ($('nav-btn-admin-tasks')) $('nav-btn-admin-tasks').classList.add('active');
-    renderAdminTasksTable();
+    fetchTasksData();
   } else if (tabId === 'annual-report') {
     $('view-annual-report').classList.add('active');
     if ($('nav-btn-annual-report')) $('nav-btn-annual-report').classList.add('active');
@@ -1145,7 +1149,7 @@ function switchNavTab(tabId) {
   } else if (tabId === 'member-tasks') {
     $('view-member-tasks').classList.add('active');
     if ($('nav-btn-member-tasks')) $('nav-btn-member-tasks').classList.add('active');
-    renderMemberTasksTable();
+    fetchTasksData();
   }
 }
 
@@ -1513,6 +1517,65 @@ function submitAdminDecision(decision) {
     fetchTasksData();
   })
   .catch(function(e) { alert('Error recording decision: ' + e); });
+}
+
+function handleAdminReplaceFile(event) {
+  var file = event.target.files && event.target.files[0];
+  event.target.value = '';
+  if (!file || !selectedTask) return;
+
+  if (file.size > 15 * 1024 * 1024) {
+    alert('File "' + file.name + '" rejected: File exceeds 15 MB limit.');
+    return;
+  }
+
+  var btn = $('btn-admin-replace-file');
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = 'Updating...';
+  }
+
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    var base64Content = e.target.result.split(',')[1];
+    fetch('/api/tasks/replace-file', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        task_id: selectedTask.task_id,
+        files: [{
+          filename: file.name,
+          size_bytes: file.size,
+          content_base64: base64Content
+        }]
+      })
+    })
+    .then(function(res) {
+      return res.json().then(function(d) { return { ok: res.ok, data: d }; });
+    })
+    .then(function(result) {
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = 'Update / Replace File';
+      }
+      if (!result.ok) {
+        alert('Error updating file: ' + (result.data.error || 'Failed'));
+        return;
+      }
+      loadTaskFiles(selectedTask.task_id, $('admin-det-files'));
+      fetchTasksData();
+      alert('File updated! Old file deleted and new file saved.');
+    })
+    .catch(function(err) {
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = 'Update / Replace File';
+      }
+      alert('Error updating file: ' + err);
+    });
+  };
+  reader.readAsDataURL(file);
 }
 
 /* =========================================================================
